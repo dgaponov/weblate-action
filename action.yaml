@@ -1,0 +1,14 @@
+name: 'Weblate sync'
+description: 'Synchronizes i18n changes with weblate'
+
+inputs:
+  weblateUrl:
+    description: 'Weblate server URL'
+    required: true
+  weblateToken:
+    description: 'API token for weblate'
+    required: true
+
+runs:
+  using: 'node20'
+  main: dist/main.js
