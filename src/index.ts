@@ -1,5 +1,6 @@
-import {debug} from '@actions/core';
+import {info} from '@actions/core';
 import {getConfiguration} from './config';
+import {context} from '@actions/github';
 import {Weblate} from './lib/weblate';
 
 /*
@@ -13,8 +14,18 @@ import {Weblate} from './lib/weblate';
 */
 
 async function run() {
+    // eslint-disable-next-line i18n-text/no-en
+    info('Start parse config');
     const config = getConfiguration();
-    debug(JSON.stringify(config));
+
+    const configPretty = JSON.stringify(config, undefined, 2);
+    // eslint-disable-next-line no-console
+    console.log(`The event payload: ${configPretty}`);
+
+    // Get the JSON webhook payload for the event that triggered the workflow
+    const payload = JSON.stringify(context.payload, undefined, 2);
+    // eslint-disable-next-line no-console
+    console.log(`The event payload: ${payload}`);
 
     const weblate = new Weblate({
         token: config.token,
