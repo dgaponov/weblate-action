@@ -4,7 +4,7 @@ module.exports = {
     "trailingComma": "all",
     "bracketSpacing": false,
     "plugins": [],
-    "printWidth": 120,
+    "printWidth": 80,
     "arrowParens": "avoid",
     "parser": "typescript"
 }

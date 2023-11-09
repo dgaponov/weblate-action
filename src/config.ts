@@ -1,8 +1,12 @@
 import {getInput} from '@actions/core';
-import type {TaskRunSettings} from './types';
 
-export async function getInputs(): Promise<TaskRunSettings> {
-    const settings = {} as unknown as TaskRunSettings;
+export interface Configuration {
+    weblateUrl: string;
+    weblateToken: string;
+}
+
+export function getConfiguration(): Configuration {
+    const settings = {} as unknown as Configuration;
     // TODO parse other settings
 
     settings.weblateUrl = getInput('weblateUrl');

@@ -5,7 +5,8 @@ module.exports = {
       es6: true,
     },
     extends: [
-      "plugin:github/recommended"
+      "plugin:github/recommended",
+      "@gravity-ui/eslint-config",
     ],
     ignorePatterns: ['dist', '.eslintrc.js'],
     parser: '@typescript-eslint/parser',
@@ -16,6 +17,7 @@ module.exports = {
     plugins: ['prettier', 'import', '@typescript-eslint'],
     rules: {
       "no-console": "error",
-      "prettier/prettier": "error"
+      "prettier/prettier": "error",
+      "@typescript-eslint/no-explicit-any": "off"
     }
 }
