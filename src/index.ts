@@ -17,13 +17,13 @@ async function run() {
     debug(JSON.stringify(config));
 
     const weblate = new Weblate({
-        token: config.weblateToken,
-        project: '',
-        serverUrl: config.weblateUrl,
+        token: config.token,
+        serverUrl: config.serverUrl,
+        project: config.project,
         gitRepo: '',
     });
 
-    await weblate.createCategoryForBranch('');
+    await weblate.createCategoryForBranch(config.branchName);
 }
 
 run();

@@ -33,7 +33,13 @@ export class Weblate {
         this.client.interceptors.response.use(normalizeResponse);
     }
 
-    createCategoryForBranch(branchName: string) {
+    async createCategoryForBranch(branchName: string) {
+        const category = await this.findCategoryForBranch(branchName);
+
+        if (category) {
+            return category;
+        }
+
         return this.client.post<Category>('/api/categories/', {
             project: this.project,
             name: branchName,

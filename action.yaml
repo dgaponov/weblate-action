@@ -2,12 +2,19 @@ name: 'Weblate sync'
 description: 'Synchronizes i18n changes with weblate'
 
 inputs:
-  weblateUrl:
+  serverUrl:
     description: 'Weblate server URL'
     required: true
-  weblateToken:
+  token:
     description: 'API token for weblate'
     required: true
+  project:
+    description: 'Project name in weblate'
+    required: true
+  fileFormat:
+    description: 'Translation files format'
+    required: false
+    default: 'i18next'
 
 runs:
   using: 'node20'

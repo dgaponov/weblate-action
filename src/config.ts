@@ -1,16 +1,30 @@
 import {getInput} from '@actions/core';
+import {context} from '@actions/github';
 
 export interface Configuration {
-    weblateUrl: string;
-    weblateToken: string;
+    serverUrl: string;
+    token: string;
+    project: string;
+    branchName: string;
+    fileFormat: string;
+    gitRepo: string;
+}
+
+function getBranchName(): string {
+    if (context.payload && context.payload.pull_request) {
+        return context.payload.pull_request.head.ref;
+    }
+
+    return context.ref.replace(/refs\/heads\/(.*)/, '$1');
 }
 
 export function getConfiguration(): Configuration {
-    const settings = {} as unknown as Configuration;
-    // TODO parse other settings
-
-    settings.weblateUrl = getInput('weblateUrl');
-    settings.weblateToken = getInput('weblateToken');
-
-    return settings;
+    return {
+        serverUrl: getInput('serverUrl'),
+        token: getInput('token'),
+        project: getInput('project'),
+        branchName: getBranchName(),
+        fileFormat: getInput('fileFormat'),
+        gitRepo: context.repo.repo,
+    };
 }
