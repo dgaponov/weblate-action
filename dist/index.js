@@ -36293,6 +36293,7 @@ var Weblate = class {
   createComponent({
     name,
     fileMask: fileMask2,
+    source,
     repo,
     branch: branch2,
     category: category2,
@@ -36310,7 +36311,9 @@ var Weblate = class {
         repo,
         push: repoForUpdates,
         branch: branch2,
-        category: category2 ? `${this.serverUrl}/api/categories/${category2}/` : void 0
+        category: category2 ? `${this.serverUrl}/api/categories/${category2}/` : void 0,
+        template: source,
+        new_base: source
       }
     );
   }
@@ -36362,14 +36365,17 @@ async function run() {
     fileMask: firstComponent.fileMask,
     category: categoryId,
     repo: config.gitRepo,
-    repoForUpdates: config.gitRepo
+    branch: config.branchName,
+    repoForUpdates: config.gitRepo,
+    source: firstComponent.source
   });
   const promises = otherComponents.map(
     (component) => weblate.createComponent({
       name: component.name,
-      fileMask: firstComponent.fileMask,
+      fileMask: component.fileMask,
       category: categoryId,
-      repo: `weblate://${config.project}/${categorySlug}%2F${firstComponentInWeblate.slug}`
+      repo: `weblate://${config.project}/${categorySlug}%2F${firstComponentInWeblate.slug}`,
+      source: component.source
     })
   );
   await Promise.all(promises);

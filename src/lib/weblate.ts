@@ -76,6 +76,7 @@ export class Weblate {
     createComponent({
         name,
         fileMask,
+        source,
         repo,
         branch,
         category,
@@ -83,6 +84,7 @@ export class Weblate {
     }: {
         name: string;
         fileMask: string;
+        source: string;
         repo: string;
         branch?: string;
         category?: string;
@@ -103,6 +105,8 @@ export class Weblate {
                 category: category
                     ? `${this.serverUrl}/api/categories/${category}/`
                     : undefined,
+                template: source,
+                new_base: source,
             },
         );
     }

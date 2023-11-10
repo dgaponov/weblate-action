@@ -52,15 +52,18 @@ async function run() {
         fileMask: firstComponent.fileMask,
         category: categoryId,
         repo: config.gitRepo,
+        branch: config.branchName,
         repoForUpdates: config.gitRepo,
+        source: firstComponent.source,
     });
 
     const promises = otherComponents.map(component =>
         weblate.createComponent({
             name: component.name,
-            fileMask: firstComponent.fileMask,
+            fileMask: component.fileMask,
             category: categoryId,
             repo: `weblate://${config.project}/${categorySlug}%2F${firstComponentInWeblate.slug}`,
+            source: component.source,
         }),
     );
 
