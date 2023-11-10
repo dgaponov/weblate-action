@@ -36275,8 +36275,8 @@ var Weblate = class {
   }
   async findCategoryForBranch(branchName) {
     let category2;
-    let page;
-    while (!category2 && page) {
+    let page = 1;
+    while (!category2) {
       const { next, results } = await this.client.get(
         `/api/projects/${this.project}/categories/`,
         {
@@ -36286,7 +36286,11 @@ var Weblate = class {
       console.log(`page = ${page}`);
       console.log(JSON.stringify(results, void 0, 2));
       category2 = results.find(({ name }) => name === branchName);
-      page = next;
+      if (next) {
+        page = next;
+      } else {
+        break;
+      }
     }
     return category2;
   }

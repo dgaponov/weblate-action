@@ -51,9 +51,9 @@ export class Weblate {
 
     async findCategoryForBranch(branchName: string) {
         let category: Category | undefined;
-        let page: number | undefined;
+        let page = 1;
 
-        while (!category && page) {
+        while (!category) {
             const {next, results} = await this.client.get<Paginated<Category>>(
                 `/api/projects/${this.project}/categories/`,
                 {
@@ -65,7 +65,12 @@ export class Weblate {
             console.log(JSON.stringify(results, undefined, 2));
 
             category = results.find(({name}) => name === branchName);
-            page = next;
+
+            if (next) {
+                page = next;
+            } else {
+                break;
+            }
         }
 
         return category;
