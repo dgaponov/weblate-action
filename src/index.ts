@@ -1,6 +1,8 @@
 import {info} from '@actions/core';
 import {getConfiguration} from './config';
+import path from 'path';
 import {Weblate} from './lib/weblate';
+import fs from 'fs/promises';
 
 /*
     Какой флоу:
@@ -29,6 +31,18 @@ async function run() {
     const category = await weblate.createCategoryForBranch(config.branchName);
     const categoryPretty = JSON.stringify(category, undefined, 2);
     console.log(`Created category: ${categoryPretty}`);
+
+    console.log(`Current dir: ${path.resolve(process.cwd())}`);
+
+    const dirents = await fs.readdir(path.resolve(process.cwd()), {
+        withFileTypes: true,
+    });
+
+    console.log(
+        dirents
+            .filter(dirent => dirent.isDirectory())
+            .map(dirent => dirent.name),
+    );
 }
 
 run();
