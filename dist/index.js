@@ -36361,7 +36361,7 @@ async function run() {
     config.keysetsPath
   );
   const firstComponentInWeblate = await weblate.createComponent({
-    name: firstComponent.name,
+    name: `${firstComponent.name}__${config.pullRequestNumber}`,
     fileMask: firstComponent.fileMask,
     category: categoryId,
     repo: config.gitRepo,
@@ -36371,10 +36371,10 @@ async function run() {
   });
   const promises = otherComponents.map(
     (component) => weblate.createComponent({
-      name: component.name,
+      name: `${component.name}__${config.pullRequestNumber}`,
       fileMask: component.fileMask,
       category: categoryId,
-      repo: `weblate://${config.project}/${categorySlug}%2F${firstComponentInWeblate.slug}`,
+      repo: `weblate://${config.project}/${categorySlug}/${firstComponentInWeblate.slug}`,
       source: component.source
     })
   );
