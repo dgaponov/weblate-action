@@ -61,6 +61,9 @@ export class Weblate {
                 },
             );
 
+            console.log(`page = ${page}`);
+            console.log(JSON.stringify(results, undefined, 2));
+
             category = results.find(({name}) => name === branchName);
             page = next;
         }

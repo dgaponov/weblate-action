@@ -36283,6 +36283,8 @@ var Weblate = class {
           params: { page }
         }
       );
+      console.log(`page = ${page}`);
+      console.log(JSON.stringify(results, void 0, 2));
       category2 = results.find(({ name }) => name === branchName);
       page = next;
     }
