@@ -3804,18 +3804,18 @@ var require_webidl = __commonJS({
     webidl.errors.exception = function(message) {
       return new TypeError(`${message.header}: ${message.message}`);
     };
-    webidl.errors.conversionFailed = function(context3) {
-      const plural = context3.types.length === 1 ? "" : " one of";
-      const message = `${context3.argument} could not be converted to${plural}: ${context3.types.join(", ")}.`;
+    webidl.errors.conversionFailed = function(context2) {
+      const plural = context2.types.length === 1 ? "" : " one of";
+      const message = `${context2.argument} could not be converted to${plural}: ${context2.types.join(", ")}.`;
       return webidl.errors.exception({
-        header: context3.prefix,
+        header: context2.prefix,
         message
       });
     };
-    webidl.errors.invalidArgument = function(context3) {
+    webidl.errors.invalidArgument = function(context2) {
       return webidl.errors.exception({
-        header: context3.prefix,
-        message: `"${context3.value}" is an invalid ${context3.type}.`
+        header: context2.prefix,
+        message: `"${context2.value}" is an invalid ${context2.type}.`
       });
     };
     webidl.brandCheck = function(V, I, opts = void 0) {
@@ -9127,15 +9127,15 @@ var require_api_request = __commonJS({
         }
         addSignal(this, signal);
       }
-      onConnect(abort, context3) {
+      onConnect(abort, context2) {
         if (!this.callback) {
           throw new RequestAbortedError();
         }
         this.abort = abort;
-        this.context = context3;
+        this.context = context2;
       }
       onHeaders(statusCode, rawHeaders, resume, statusMessage) {
-        const { callback, opaque, abort, context: context3, responseHeaders, highWaterMark } = this;
+        const { callback, opaque, abort, context: context2, responseHeaders, highWaterMark } = this;
         const headers = responseHeaders === "raw" ? util2.parseRawHeaders(rawHeaders) : util2.parseHeaders(rawHeaders);
         if (statusCode < 200) {
           if (this.onInfo) {
@@ -9162,7 +9162,7 @@ var require_api_request = __commonJS({
               trailers: this.trailers,
               opaque,
               body,
-              context: context3
+              context: context2
             });
           }
         }
@@ -9281,15 +9281,15 @@ var require_api_stream = __commonJS({
         }
         addSignal(this, signal);
       }
-      onConnect(abort, context3) {
+      onConnect(abort, context2) {
         if (!this.callback) {
           throw new RequestAbortedError();
         }
         this.abort = abort;
-        this.context = context3;
+        this.context = context2;
       }
       onHeaders(statusCode, rawHeaders, resume, statusMessage) {
-        const { factory, opaque, context: context3, callback, responseHeaders } = this;
+        const { factory, opaque, context: context2, callback, responseHeaders } = this;
         const headers = responseHeaders === "raw" ? util2.parseRawHeaders(rawHeaders) : util2.parseHeaders(rawHeaders);
         if (statusCode < 200) {
           if (this.onInfo) {
@@ -9317,7 +9317,7 @@ var require_api_stream = __commonJS({
             statusCode,
             headers,
             opaque,
-            context: context3
+            context: context2
           });
           if (!res || typeof res.write !== "function" || typeof res.end !== "function" || typeof res.on !== "function") {
             throw new InvalidReturnValueError("expected Writable");
@@ -9509,17 +9509,17 @@ var require_api_pipeline = __commonJS({
         this.res = null;
         addSignal(this, signal);
       }
-      onConnect(abort, context3) {
+      onConnect(abort, context2) {
         const { ret, res } = this;
         assert(!res, "pipeline cannot be retried");
         if (ret.destroyed) {
           throw new RequestAbortedError();
         }
         this.abort = abort;
-        this.context = context3;
+        this.context = context2;
       }
       onHeaders(statusCode, rawHeaders, resume) {
-        const { opaque, handler, context: context3 } = this;
+        const { opaque, handler, context: context2 } = this;
         if (statusCode < 200) {
           if (this.onInfo) {
             const headers = this.responseHeaders === "raw" ? util2.parseRawHeaders(rawHeaders) : util2.parseHeaders(rawHeaders);
@@ -9537,7 +9537,7 @@ var require_api_pipeline = __commonJS({
             headers,
             opaque,
             body: this.res,
-            context: context3
+            context: context2
           });
         } catch (err) {
           this.res.on("error", util2.nop);
@@ -9621,7 +9621,7 @@ var require_api_upgrade = __commonJS({
         this.context = null;
         addSignal(this, signal);
       }
-      onConnect(abort, context3) {
+      onConnect(abort, context2) {
         if (!this.callback) {
           throw new RequestAbortedError();
         }
@@ -9632,7 +9632,7 @@ var require_api_upgrade = __commonJS({
         throw new SocketError("bad upgrade", null);
       }
       onUpgrade(statusCode, rawHeaders, socket) {
-        const { callback, opaque, context: context3 } = this;
+        const { callback, opaque, context: context2 } = this;
         assert.strictEqual(statusCode, 101);
         removeSignal(this);
         this.callback = null;
@@ -9641,7 +9641,7 @@ var require_api_upgrade = __commonJS({
           headers,
           socket,
           opaque,
-          context: context3
+          context: context2
         });
       }
       onError(err) {
@@ -9709,18 +9709,18 @@ var require_api_connect = __commonJS({
         this.abort = null;
         addSignal(this, signal);
       }
-      onConnect(abort, context3) {
+      onConnect(abort, context2) {
         if (!this.callback) {
           throw new RequestAbortedError();
         }
         this.abort = abort;
-        this.context = context3;
+        this.context = context2;
       }
       onHeaders() {
         throw new SocketError("bad connect", null);
       }
       onUpgrade(statusCode, rawHeaders, socket) {
-        const { callback, opaque, context: context3 } = this;
+        const { callback, opaque, context: context2 } = this;
         removeSignal(this);
         this.callback = null;
         let headers = rawHeaders;
@@ -9732,7 +9732,7 @@ var require_api_connect = __commonJS({
           headers,
           socket,
           opaque,
-          context: context3
+          context: context2
         });
       }
       onError(err) {
@@ -18416,8 +18416,8 @@ var require_dist_node2 = __commonJS({
     function isKeyOperator(operator) {
       return operator === ";" || operator === "&" || operator === "?";
     }
-    function getValues(context3, operator, key, modifier) {
-      var value = context3[key], result = [];
+    function getValues(context2, operator, key, modifier) {
+      var value = context2[key], result = [];
       if (isDefined(value) && value !== "") {
         if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
           value = value.toString();
@@ -18481,7 +18481,7 @@ var require_dist_node2 = __commonJS({
         expand: expand.bind(null, template)
       };
     }
-    function expand(template, context3) {
+    function expand(template, context2) {
       var operators = ["+", "#", ".", "/", ";", "?", "&"];
       template = template.replace(
         /\{([^\{\}]+)\}|([^\{\}]+)/g,
@@ -18495,7 +18495,7 @@ var require_dist_node2 = __commonJS({
             }
             expression.split(/,/g).forEach(function(variable) {
               var tmp = /([^:\*]*)(?::(\d+)|(\*))?/.exec(variable);
-              values.push(getValues(context3, operator, tmp[1], tmp[2] || tmp[3]));
+              values.push(getValues(context2, operator, tmp[1], tmp[2] || tmp[3]));
             });
             if (operator && operator !== "+") {
               var separator = ",";
@@ -33217,7 +33217,7 @@ function getConfiguration() {
   if (!import_github.context.payload.pull_request) {
     throw Error("Weblate-action works only with pull requests");
   }
-  if (!import_github.context.payload.pull_request.html_url) {
+  if (!import_github.context.payload.repository?.html_url) {
     throw Error("Repository url not found");
   }
   return {
@@ -33226,13 +33226,10 @@ function getConfiguration() {
     project: (0, import_core.getInput)("PROJECT"),
     branchName: getBranchName(),
     fileFormat: (0, import_core.getInput)("FILE_FORMAT"),
-    gitRepo: import_github.context.payload.pull_request.html_url,
+    gitRepo: import_github.context.payload.repository.html_url,
     pullRequestNumber: import_github.context.payload.pull_request.number
   };
 }
-
-// src/index.ts
-var import_github2 = __toESM(require_github());
 
 // node_modules/axios/lib/helpers/bind.js
 function bind(fn, thisArg) {
@@ -33333,7 +33330,7 @@ var _global = (() => {
     return globalThis;
   return typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : global;
 })();
-var isContextDefined = (context3) => !isUndefined(context3) && context3 !== _global;
+var isContextDefined = (context2) => !isUndefined(context2) && context2 !== _global;
 function merge() {
   const { caseless } = isContextDefined(this) && this || {};
   const result = {};
@@ -34176,7 +34173,7 @@ function parseTokens(str) {
   return tokens;
 }
 var isValidHeaderName = (str) => /^[-_a-zA-Z0-9^`|~,!#$%&'*+.]+$/.test(str.trim());
-function matchHeaderValue(context3, value, header, filter2, isHeaderNameFilter) {
+function matchHeaderValue(context2, value, header, filter2, isHeaderNameFilter) {
   if (utils_default.isFunction(filter2)) {
     return filter2.call(this, value, header);
   }
@@ -34376,9 +34373,9 @@ var AxiosHeaders_default = AxiosHeaders;
 // node_modules/axios/lib/core/transformData.js
 function transformData(fns, response) {
   const config = this || defaults_default;
-  const context3 = response || config;
-  const headers = AxiosHeaders_default.from(context3.headers);
-  let data = context3.data;
+  const context2 = response || config;
+  const headers = AxiosHeaders_default.from(context2.headers);
+  let data = context2.data;
   utils_default.forEach(fns, function transform(fn) {
     data = fn.call(config, data, headers.normalize(), response ? response.status : void 0);
   });
@@ -36141,10 +36138,10 @@ var HttpStatusCode_default = HttpStatusCode;
 
 // node_modules/axios/lib/axios.js
 function createInstance(defaultConfig) {
-  const context3 = new Axios_default(defaultConfig);
-  const instance = bind(Axios_default.prototype.request, context3);
-  utils_default.extend(instance, Axios_default.prototype, context3, { allOwnKeys: true });
-  utils_default.extend(instance, context3, null, { allOwnKeys: true });
+  const context2 = new Axios_default(defaultConfig);
+  const instance = bind(Axios_default.prototype.request, context2);
+  utils_default.extend(instance, Axios_default.prototype, context2, { allOwnKeys: true });
+  utils_default.extend(instance, context2, null, { allOwnKeys: true });
   instance.create = function create(instanceConfig) {
     return createInstance(mergeConfig(defaultConfig, instanceConfig));
   };
@@ -36283,8 +36280,6 @@ var Weblate = class {
           params: { page }
         }
       );
-      console.log(`page = ${page}`);
-      console.log(JSON.stringify(results, void 0, 2));
       category2 = results.find(({ name }) => name === branchName);
       if (next) {
         page = next;
@@ -36336,8 +36331,6 @@ async function run() {
   const config = getConfiguration();
   const configPretty = JSON.stringify(config, void 0, 2);
   console.log(`Parsed config: ${configPretty}`);
-  const payload = JSON.stringify(import_github2.context.payload, void 0, 2);
-  console.log(`The event payload: ${payload}`);
   const weblate = new Weblate({
     token: config.token,
     serverUrl: config.serverUrl,

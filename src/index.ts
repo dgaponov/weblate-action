@@ -1,6 +1,5 @@
 import {info} from '@actions/core';
 import {getConfiguration} from './config';
-import {context} from '@actions/github';
 import {Weblate} from './lib/weblate';
 
 /*
@@ -19,10 +18,6 @@ async function run() {
 
     const configPretty = JSON.stringify(config, undefined, 2);
     console.log(`Parsed config: ${configPretty}`);
-
-    // Get the JSON webhook payload for the event that triggered the workflow
-    const payload = JSON.stringify(context.payload, undefined, 2);
-    console.log(`The event payload: ${payload}`);
 
     const weblate = new Weblate({
         token: config.token,
