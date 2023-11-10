@@ -16,8 +16,9 @@ module.exports = {
     },
     plugins: ['prettier', 'import', '@typescript-eslint'],
     rules: {
-      "no-console": "error",
+      "no-console": "off",
       "prettier/prettier": "error",
-      "@typescript-eslint/no-explicit-any": "off"
+      "@typescript-eslint/no-explicit-any": "off",
+      "i18n-text/no-en": "off"
     }
 }

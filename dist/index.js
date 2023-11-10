@@ -33214,13 +33214,20 @@ function getBranchName() {
   return import_github.context.ref.replace(/refs\/heads\/(.*)/, "$1");
 }
 function getConfiguration() {
+  if (!import_github.context.payload.pull_request) {
+    throw Error("Weblate-action works only with pull requests");
+  }
+  if (!import_github.context.payload.pull_request.html_url) {
+    throw Error("Repository url not found");
+  }
   return {
-    serverUrl: (0, import_core.getInput)("serverUrl"),
-    token: (0, import_core.getInput)("token"),
-    project: (0, import_core.getInput)("project"),
+    serverUrl: (0, import_core.getInput)("SERVER_URL"),
+    token: (0, import_core.getInput)("TOKEN"),
+    project: (0, import_core.getInput)("PROJECT"),
     branchName: getBranchName(),
-    fileFormat: (0, import_core.getInput)("fileFormat"),
-    gitRepo: import_github.context.repo.repo
+    fileFormat: (0, import_core.getInput)("FILE_FORMAT"),
+    gitRepo: import_github.context.payload.pull_request.html_url,
+    pullRequestNumber: import_github.context.payload.pull_request.number
   };
 }
 
@@ -36321,16 +36328,18 @@ async function run() {
   (0, import_core2.info)("Start parse config");
   const config = getConfiguration();
   const configPretty = JSON.stringify(config, void 0, 2);
-  console.log(`The event payload: ${configPretty}`);
+  console.log(`Parsed config: ${configPretty}`);
   const payload = JSON.stringify(import_github2.context.payload, void 0, 2);
   console.log(`The event payload: ${payload}`);
   const weblate = new Weblate({
     token: config.token,
     serverUrl: config.serverUrl,
     project: config.project,
-    gitRepo: ""
+    gitRepo: config.gitRepo
   });
-  await weblate.createCategoryForBranch(config.branchName);
+  const category2 = await weblate.createCategoryForBranch(config.branchName);
+  const categoryPretty = JSON.stringify(category2, void 0, 2);
+  console.log(`Created category: ${categoryPretty}`);
 }
 run();
 /*! Bundled license information:

@@ -2,16 +2,16 @@ name: 'Weblate sync'
 description: 'Synchronizes i18n changes with weblate'
 
 inputs:
-  serverUrl:
+  SERVER_URL:
     description: 'Weblate server URL'
     required: true
-  token:
+  TOKEN:
     description: 'API token for weblate'
     required: true
-  project:
+  PROJECT:
     description: 'Project name in weblate'
     required: true
-  fileFormat:
+  FILE_FORMAT:
     description: 'Translation files format'
     required: false
     default: 'i18next'

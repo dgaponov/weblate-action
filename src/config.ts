@@ -8,6 +8,7 @@ export interface Configuration {
     branchName: string;
     fileFormat: string;
     gitRepo: string;
+    pullRequestNumber: number;
 }
 
 function getBranchName(): string {
@@ -19,12 +20,21 @@ function getBranchName(): string {
 }
 
 export function getConfiguration(): Configuration {
+    if (!context.payload.pull_request) {
+        throw Error('Weblate-action works only with pull requests');
+    }
+
+    if (!context.payload.pull_request.html_url) {
+        throw Error('Repository url not found');
+    }
+
     return {
-        serverUrl: getInput('serverUrl'),
-        token: getInput('token'),
-        project: getInput('project'),
+        serverUrl: getInput('SERVER_URL'),
+        token: getInput('TOKEN'),
+        project: getInput('PROJECT'),
         branchName: getBranchName(),
-        fileFormat: getInput('fileFormat'),
-        gitRepo: context.repo.repo,
+        fileFormat: getInput('FILE_FORMAT'),
+        gitRepo: context.payload.pull_request.html_url,
+        pullRequestNumber: context.payload.pull_request.number,
     };
 }
