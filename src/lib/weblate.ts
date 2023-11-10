@@ -15,11 +15,13 @@ interface WeblateConstructorArg {
 }
 
 export class Weblate {
+    private serverUrl: string;
     private project: string;
     private gitRepo: string;
     private client: AxiosInstance;
 
     constructor({serverUrl, token, project, gitRepo}: WeblateConstructorArg) {
+        this.serverUrl = serverUrl;
         this.project = project;
         this.gitRepo = gitRepo;
 
@@ -41,7 +43,7 @@ export class Weblate {
         }
 
         return this.client.post<Category>('/api/categories/', {
-            project: this.project,
+            project: `${this.serverUrl}/api/projects/${this.project}/`,
             name: branchName,
             slug: getSlugForBranch(branchName),
         });
@@ -80,7 +82,6 @@ export class Weblate {
         return this.client.post(`/api/projects/${this.project}/components/`, {
             name,
             slug: name,
-            project: this.project,
             source_language: {code: 'en', name: 'English'},
             file_format: 'i18next',
             filemask: fileMask,
@@ -88,7 +89,9 @@ export class Weblate {
             repo: this.gitRepo,
             push: this.gitRepo,
             branch,
-            category,
+            category: category
+                ? `${this.serverUrl}/api/categories/${category}/`
+                : undefined,
         });
     }
 

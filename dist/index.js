@@ -36246,10 +36246,12 @@ var getSlugForBranch = (branchName) => (0, import_kebabCase.default)(branchName)
 
 // src/lib/weblate.ts
 var Weblate = class {
+  serverUrl;
   project;
   gitRepo;
   client;
   constructor({ serverUrl, token, project, gitRepo }) {
+    this.serverUrl = serverUrl;
     this.project = project;
     this.gitRepo = gitRepo;
     this.client = axios_default.create({
@@ -36266,7 +36268,7 @@ var Weblate = class {
       return category2;
     }
     return this.client.post("/api/categories/", {
-      project: this.project,
+      project: `${this.serverUrl}/api/projects/${this.project}/`,
       name: branchName,
       slug: getSlugForBranch(branchName)
     });
@@ -36295,7 +36297,6 @@ var Weblate = class {
     return this.client.post(`/api/projects/${this.project}/components/`, {
       name,
       slug: name,
-      project: this.project,
       source_language: { code: "en", name: "English" },
       file_format: "i18next",
       filemask: fileMask2,
@@ -36303,7 +36304,7 @@ var Weblate = class {
       repo: this.gitRepo,
       push: this.gitRepo,
       branch: branch2,
-      category: category2
+      category: category2 ? `${this.serverUrl}/api/categories/${category2}/` : void 0
     });
   }
   async findComponent({ name }) {
