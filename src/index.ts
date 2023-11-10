@@ -46,6 +46,8 @@ async function run() {
     const [firstComponent, ...otherComponents] = await resolveComponents(
         config.keysetsPath,
     );
+    console.log(firstComponent);
+    console.log(otherComponents);
 
     const firstComponentInWeblate = await weblate.createComponent({
         name: `${firstComponent.name}__${config.pullRequestNumber}`,
