@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type {AxiosInstance} from 'axios';
-import type {Category, Paginated} from './types';
+import type {Category, Component, Paginated} from './types';
 import {getSlugForBranch, normalizeResponse} from './normalizers';
 
 declare module 'axios' {
@@ -75,29 +75,36 @@ export class Weblate {
 
     createComponent({
         name,
-        branch,
         fileMask,
+        repo,
+        branch,
         category,
+        repoForUpdates,
     }: {
         name: string;
-        branch?: string;
         fileMask: string;
+        repo: string;
+        branch?: string;
         category?: string;
+        repoForUpdates?: string;
     }) {
-        return this.client.post(`/api/projects/${this.project}/components/`, {
-            name,
-            slug: name,
-            source_language: {code: 'en', name: 'English'},
-            file_format: 'i18next',
-            filemask: fileMask,
-            vcs: 'git',
-            repo: this.gitRepo,
-            push: this.gitRepo,
-            branch,
-            category: category
-                ? `${this.serverUrl}/api/categories/${category}/`
-                : undefined,
-        });
+        return this.client.post<Component>(
+            `/api/projects/${this.project}/components/`,
+            {
+                name,
+                slug: name,
+                source_language: {code: 'en', name: 'English'},
+                file_format: 'i18next',
+                filemask: fileMask,
+                vcs: 'git',
+                repo,
+                push: repoForUpdates,
+                branch,
+                category: category
+                    ? `${this.serverUrl}/api/categories/${category}/`
+                    : undefined,
+            },
+        );
     }
 
     async findComponent({name}: {name: string; branch?: string}) {

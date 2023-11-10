@@ -9,6 +9,7 @@ export interface Configuration {
     fileFormat: string;
     gitRepo: string;
     pullRequestNumber: number;
+    keysetsPath: string;
 }
 
 function getBranchName(): string {
@@ -36,5 +37,6 @@ export function getConfiguration(): Configuration {
         fileFormat: getInput('FILE_FORMAT'),
         gitRepo: context.payload.repository.html_url,
         pullRequestNumber: context.payload.pull_request.number,
+        keysetsPath: getInput('KEYSETS_PATH'),
     };
 }

@@ -1,4 +1,3 @@
-import {info} from '@actions/core';
 import {getConfiguration} from './config';
 import path from 'path';
 import {Weblate} from './lib/weblate';
@@ -14,8 +13,21 @@ import fs from 'fs/promises';
     К имени компонентов добавляем постфикс с id pr
 */
 
+const resolveComponents = async (keysetsPath: string) => {
+    const dirents = await fs.readdir(path.resolve(process.cwd(), keysetsPath), {
+        withFileTypes: true,
+    });
+
+    return dirents
+        .filter(dirent => dirent.isDirectory() && !dirent.name.startsWith('.'))
+        .map(({name}) => ({
+            name,
+            source: path.join(keysetsPath, name, 'en.json'),
+            fileMask: path.join(keysetsPath, name, '*.json'),
+        }));
+};
+
 async function run() {
-    info('Start parse config');
     const config = getConfiguration();
 
     const configPretty = JSON.stringify(config, undefined, 2);
@@ -28,21 +40,31 @@ async function run() {
         gitRepo: config.gitRepo,
     });
 
-    const category = await weblate.createCategoryForBranch(config.branchName);
-    const categoryPretty = JSON.stringify(category, undefined, 2);
-    console.log(`Created category: ${categoryPretty}`);
+    const {id: categoryId, slug: categorySlug} =
+        await weblate.createCategoryForBranch(config.branchName);
 
-    console.log(`Current dir: ${path.resolve(process.cwd())}`);
+    const [firstComponent, ...otherComponents] = await resolveComponents(
+        config.keysetsPath,
+    );
 
-    const dirents = await fs.readdir(path.resolve(process.cwd()), {
-        withFileTypes: true,
+    const firstComponentInWeblate = await weblate.createComponent({
+        name: firstComponent.name,
+        fileMask: firstComponent.fileMask,
+        category: categoryId,
+        repo: config.gitRepo,
+        repoForUpdates: config.gitRepo,
     });
 
-    console.log(
-        dirents
-            .filter(dirent => dirent.isDirectory())
-            .map(dirent => dirent.name),
+    const promises = otherComponents.map(component =>
+        weblate.createComponent({
+            name: component.name,
+            fileMask: firstComponent.fileMask,
+            category: categoryId,
+            repo: `weblate://${config.project}/${categorySlug}%2F${firstComponentInWeblate.slug}`,
+        }),
     );
+
+    await Promise.all(promises);
 }
 
 run();

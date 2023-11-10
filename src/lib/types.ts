@@ -11,3 +11,10 @@ export type Category = {
     name: string;
     slug: string;
 };
+
+export type Component = {
+    id: string;
+    project: string;
+    name: string;
+    slug: string;
+};
