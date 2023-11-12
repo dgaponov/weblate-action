@@ -33214,8 +33214,8 @@ function getConfiguration() {
   if (!import_github.context.payload.pull_request) {
     throw Error("Weblate-action works only with pull requests");
   }
-  if (!import_github.context.payload.repository?.html_url) {
-    throw Error("Repository url not found");
+  if (!import_github.context.payload.repository?.ssh_url) {
+    throw Error("Repository ssh url not found");
   }
   return {
     serverUrl: (0, import_core.getInput)("SERVER_URL"),
@@ -33223,7 +33223,7 @@ function getConfiguration() {
     project: (0, import_core.getInput)("PROJECT"),
     branchName: getBranchName(),
     fileFormat: (0, import_core.getInput)("FILE_FORMAT"),
-    gitRepo: import_github.context.payload.repository.html_url,
+    gitRepo: import_github.context.payload.repository.ssh_url,
     pullRequestNumber: import_github.context.payload.pull_request.number,
     keysetsPath: (0, import_core.getInput)("KEYSETS_PATH")
   };
