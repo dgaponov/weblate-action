@@ -33214,7 +33214,7 @@ function getConfiguration() {
   if (!import_github.context.payload.pull_request) {
     throw Error("Weblate-action works only with pull requests");
   }
-  if (!import_github.context.payload.repository?.ssh_url) {
+  if (!import_github.context.payload.repository?.html_url) {
     throw Error("Repository ssh url not found");
   }
   return {
@@ -33223,7 +33223,7 @@ function getConfiguration() {
     project: (0, import_core.getInput)("PROJECT"),
     branchName: getBranchName(),
     fileFormat: (0, import_core.getInput)("FILE_FORMAT"),
-    gitRepo: import_github.context.payload.repository.ssh_url,
+    gitRepo: import_github.context.payload.repository.html_url,
     pullRequestNumber: import_github.context.payload.pull_request.number,
     keysetsPath: (0, import_core.getInput)("KEYSETS_PATH")
   };
@@ -36261,9 +36261,9 @@ var Weblate = class {
     this.client.interceptors.response.use(normalizeResponse);
   }
   async createCategoryForBranch(branchName) {
-    const category2 = await this.findCategoryForBranch(branchName);
-    if (category2) {
-      return category2;
+    const category = await this.findCategoryForBranch(branchName);
+    if (category) {
+      return category;
     }
     return this.client.post("/api/categories/", {
       project: `${this.serverUrl}/api/projects/${this.project}/`,
@@ -36272,33 +36272,37 @@ var Weblate = class {
     });
   }
   async findCategoryForBranch(branchName) {
-    let category2;
+    let category;
     let page = 1;
-    while (!category2) {
+    while (!category) {
       const { next, results } = await this.client.get(
         `/api/projects/${this.project}/categories/`,
         {
           params: { page }
         }
       );
-      category2 = results.find(({ name }) => name === branchName);
+      category = results.find(({ name }) => name === branchName);
       if (next) {
         page = next;
       } else {
         break;
       }
     }
-    return category2;
+    return category;
   }
-  createComponent({
+  async createComponent({
     name,
-    fileMask: fileMask2,
+    fileMask,
     source,
     repo,
-    branch: branch2,
-    category: category2,
+    branch,
+    category,
     repoForUpdates
   }) {
+    const component = await this.findComponent({ name, branch });
+    if (component) {
+      return component;
+    }
     return this.client.post(
       `/api/projects/${this.project}/components/`,
       {
@@ -36306,31 +36310,26 @@ var Weblate = class {
         slug: name,
         source_language: { code: "en", name: "English" },
         file_format: "i18next",
-        filemask: fileMask2,
+        filemask: fileMask,
         vcs: "github",
         repo,
         push: repoForUpdates,
-        branch: branch2,
-        category: category2 ? `${this.serverUrl}/api/categories/${category2}/` : void 0,
+        branch,
+        category: category ? `${this.serverUrl}/api/categories/${category}/` : void 0,
         template: source,
         new_base: source
       }
     );
   }
-  async findComponent({ name }) {
-    return this.client.post(`/api/projects/${this.project}/components/`, {
-      name,
-      slug: name,
-      project: this.project,
-      source_language: { code: "en", name: "English" },
-      file_format: "i18next",
-      filemask: fileMask,
-      vcs: "git",
-      repo: this.gitRepo,
-      push: this.gitRepo,
-      branch,
-      category
-    });
+  async findComponent({ name, branch }) {
+    const componentName = branch ? `${getSlugForBranch(branch)}%2F${name}` : name;
+    try {
+      return await this.client.get(
+        `/api/components/${this.project}/${componentName}`
+      );
+    } catch (_error) {
+      return void 0;
+    }
   }
 };
 
@@ -36360,15 +36359,12 @@ async function run() {
   const [firstComponent, ...otherComponents] = await resolveComponents(
     config.keysetsPath
   );
-  console.log(firstComponent);
-  console.log(otherComponents);
   const firstComponentInWeblate = await weblate.createComponent({
     name: `${firstComponent.name}__${config.pullRequestNumber}`,
     fileMask: firstComponent.fileMask,
     category: categoryId,
     repo: config.gitRepo,
     branch: config.branchName,
-    repoForUpdates: config.gitRepo,
     source: firstComponent.source
   });
   const promises = otherComponents.map(

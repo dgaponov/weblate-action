@@ -46,8 +46,6 @@ async function run() {
     const [firstComponent, ...otherComponents] = await resolveComponents(
         config.keysetsPath,
     );
-    console.log(firstComponent);
-    console.log(otherComponents);
 
     const firstComponentInWeblate = await weblate.createComponent({
         name: `${firstComponent.name}__${config.pullRequestNumber}`,
@@ -55,7 +53,6 @@ async function run() {
         category: categoryId,
         repo: config.gitRepo,
         branch: config.branchName,
-        repoForUpdates: config.gitRepo,
         source: firstComponent.source,
     });
 

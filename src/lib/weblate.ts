@@ -73,7 +73,7 @@ export class Weblate {
         return category;
     }
 
-    createComponent({
+    async createComponent({
         name,
         fileMask,
         source,
@@ -90,6 +90,12 @@ export class Weblate {
         category?: string;
         repoForUpdates?: string;
     }) {
+        const component = await this.findComponent({name, branch});
+
+        if (component) {
+            return component;
+        }
+
         return this.client.post<Component>(
             `/api/projects/${this.project}/components/`,
             {
@@ -111,19 +117,17 @@ export class Weblate {
         );
     }
 
-    async findComponent({name}: {name: string; branch?: string}) {
-        return this.client.post(`/api/projects/${this.project}/components/`, {
-            name,
-            slug: name,
-            project: this.project,
-            source_language: {code: 'en', name: 'English'},
-            file_format: 'i18next',
-            filemask: fileMask,
-            vcs: 'git',
-            repo: this.gitRepo,
-            push: this.gitRepo,
-            branch,
-            category,
-        });
+    async findComponent({name, branch}: {name: string; branch?: string}) {
+        const componentName = branch
+            ? `${getSlugForBranch(branch)}%2F${name}`
+            : name;
+
+        try {
+            return await this.client.get<Component>(
+                `/api/components/${this.project}/${componentName}`,
+            );
+        } catch (_error) {
+            return undefined;
+        }
     }
 }

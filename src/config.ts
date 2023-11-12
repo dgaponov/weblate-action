@@ -25,7 +25,7 @@ export function getConfiguration(): Configuration {
         throw Error('Weblate-action works only with pull requests');
     }
 
-    if (!context.payload.repository?.ssh_url) {
+    if (!context.payload.repository?.html_url) {
         throw Error('Repository ssh url not found');
     }
 
@@ -35,7 +35,7 @@ export function getConfiguration(): Configuration {
         project: getInput('PROJECT'),
         branchName: getBranchName(),
         fileFormat: getInput('FILE_FORMAT'),
-        gitRepo: context.payload.repository.ssh_url,
+        gitRepo: context.payload.repository.html_url,
         pullRequestNumber: context.payload.pull_request.number,
         keysetsPath: getInput('KEYSETS_PATH'),
     };
