@@ -129,9 +129,10 @@ export class Weblate {
             return await this.client.get<Component>(
                 `/api/components/${this.project}/${encodeURIComponent(
                     componentName,
-                )}`,
+                )}/`,
             );
-        } catch (_error) {
+        } catch (error) {
+            console.log(error);
             return undefined;
         }
     }

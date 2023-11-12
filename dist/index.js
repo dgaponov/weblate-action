@@ -36329,9 +36329,10 @@ var Weblate = class {
       return await this.client.get(
         `/api/components/${this.project}/${encodeURIComponent(
           componentName
-        )}`
+        )}/`
       );
-    } catch (_error) {
+    } catch (error) {
+      console.log(error);
       return void 0;
     }
   }
