@@ -98,7 +98,7 @@ export class Weblate {
                 source_language: {code: 'en', name: 'English'},
                 file_format: 'i18next',
                 filemask: fileMask,
-                vcs: 'git',
+                vcs: 'github',
                 repo,
                 push: repoForUpdates,
                 branch,
