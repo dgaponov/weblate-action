@@ -50,7 +50,8 @@ async function run() {
     const firstComponentInWeblate = await weblate.createComponent({
         name: `${firstComponent.name}__${config.pullRequestNumber}`,
         fileMask: firstComponent.fileMask,
-        category: categoryId,
+        categoryId,
+        categorySlug,
         repo: config.gitRepo,
         branch: config.branchName,
         source: firstComponent.source,
@@ -60,7 +61,8 @@ async function run() {
         weblate.createComponent({
             name: `${component.name}__${config.pullRequestNumber}`,
             fileMask: component.fileMask,
-            category: categoryId,
+            categoryId,
+            categorySlug,
             repo: `weblate://${config.project}/${categorySlug}/${firstComponentInWeblate.slug}`,
             source: component.source,
         }),

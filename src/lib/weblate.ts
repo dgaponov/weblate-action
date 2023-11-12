@@ -11,19 +11,16 @@ interface WeblateConstructorArg {
     serverUrl: string;
     token: string;
     project: string;
-    gitRepo: string;
 }
 
 export class Weblate {
     private serverUrl: string;
     private project: string;
-    private gitRepo: string;
     private client: AxiosInstance;
 
-    constructor({serverUrl, token, project, gitRepo}: WeblateConstructorArg) {
+    constructor({serverUrl, token, project}: WeblateConstructorArg) {
         this.serverUrl = serverUrl;
         this.project = project;
-        this.gitRepo = gitRepo;
 
         this.client = axios.create({
             baseURL: serverUrl,
@@ -79,7 +76,8 @@ export class Weblate {
         source,
         repo,
         branch,
-        category,
+        categoryId,
+        categorySlug,
         repoForUpdates,
     }: {
         name: string;
@@ -87,10 +85,11 @@ export class Weblate {
         source: string;
         repo: string;
         branch?: string;
-        category?: string;
+        categoryId?: string;
+        categorySlug?: string;
         repoForUpdates?: string;
     }) {
-        const component = await this.findComponent({name, branch});
+        const component = await this.findComponent({name, categorySlug});
 
         if (component) {
             return component;
@@ -108,8 +107,8 @@ export class Weblate {
                 repo,
                 push: repoForUpdates,
                 branch,
-                category: category
-                    ? `${this.serverUrl}/api/categories/${category}/`
+                category: categoryId
+                    ? `${this.serverUrl}/api/categories/${categoryId}/`
                     : undefined,
                 template: source,
                 new_base: source,
@@ -117,10 +116,14 @@ export class Weblate {
         );
     }
 
-    async findComponent({name, branch}: {name: string; branch?: string}) {
-        const componentName = branch
-            ? `${getSlugForBranch(branch)}%2F${name}`
-            : name;
+    async findComponent({
+        name,
+        categorySlug,
+    }: {
+        name: string;
+        categorySlug?: string;
+    }) {
+        const componentName = categorySlug ? `${categorySlug}%2F${name}` : name;
 
         try {
             return await this.client.get<Component>(

@@ -36246,12 +36246,10 @@ var getSlugForBranch = (branchName) => (0, import_kebabCase.default)(branchName)
 var Weblate = class {
   serverUrl;
   project;
-  gitRepo;
   client;
-  constructor({ serverUrl, token, project, gitRepo }) {
+  constructor({ serverUrl, token, project }) {
     this.serverUrl = serverUrl;
     this.project = project;
-    this.gitRepo = gitRepo;
     this.client = axios_default.create({
       baseURL: serverUrl,
       headers: {
@@ -36296,10 +36294,11 @@ var Weblate = class {
     source,
     repo,
     branch,
-    category,
+    categoryId,
+    categorySlug,
     repoForUpdates
   }) {
-    const component = await this.findComponent({ name, branch });
+    const component = await this.findComponent({ name, categorySlug });
     if (component) {
       return component;
     }
@@ -36315,17 +36314,22 @@ var Weblate = class {
         repo,
         push: repoForUpdates,
         branch,
-        category: category ? `${this.serverUrl}/api/categories/${category}/` : void 0,
+        category: categoryId ? `${this.serverUrl}/api/categories/${categoryId}/` : void 0,
         template: source,
         new_base: source
       }
     );
   }
-  async findComponent({ name, branch }) {
-    const componentName = branch ? `${getSlugForBranch(branch)}%2F${name}` : name;
+  async findComponent({
+    name,
+    categorySlug
+  }) {
+    const componentName = categorySlug ? `${categorySlug}%2F${name}` : name;
     try {
       return await this.client.get(
-        `/api/components/${this.project}/${componentName}`
+        `/api/components/${this.project}/${encodeURIComponent(
+          componentName
+        )}`
       );
     } catch (_error) {
       return void 0;
@@ -36362,7 +36366,8 @@ async function run() {
   const firstComponentInWeblate = await weblate.createComponent({
     name: `${firstComponent.name}__${config.pullRequestNumber}`,
     fileMask: firstComponent.fileMask,
-    category: categoryId,
+    categoryId,
+    categorySlug,
     repo: config.gitRepo,
     branch: config.branchName,
     source: firstComponent.source
@@ -36371,7 +36376,8 @@ async function run() {
     (component) => weblate.createComponent({
       name: `${component.name}__${config.pullRequestNumber}`,
       fileMask: component.fileMask,
-      category: categoryId,
+      categoryId,
+      categorySlug,
       repo: `weblate://${config.project}/${categorySlug}/${firstComponentInWeblate.slug}`,
       source: component.source
     })
