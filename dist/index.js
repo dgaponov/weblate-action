@@ -36307,7 +36307,7 @@ var Weblate = class {
         source_language: { code: "en", name: "English" },
         file_format: "i18next",
         filemask: fileMask2,
-        vcs: "git",
+        vcs: "github",
         repo,
         push: repoForUpdates,
         branch: branch2,
