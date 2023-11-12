@@ -106,6 +106,7 @@ export class Weblate {
                 vcs: 'github',
                 repo,
                 push: repoForUpdates,
+                push_branch: repoForUpdates ? branch : undefined,
                 branch,
                 category: categoryId
                     ? `${this.serverUrl}/api/categories/${categoryId}/`

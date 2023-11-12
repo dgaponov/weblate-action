@@ -55,6 +55,7 @@ async function run() {
         repo: config.gitRepo,
         branch: config.branchName,
         source: firstComponent.source,
+        repoForUpdates: config.gitRepo,
     });
 
     const promises = otherComponents.map(component =>

@@ -36313,6 +36313,7 @@ var Weblate = class {
         vcs: "github",
         repo,
         push: repoForUpdates,
+        push_branch: repoForUpdates ? branch : void 0,
         branch,
         category: categoryId ? `${this.serverUrl}/api/categories/${categoryId}/` : void 0,
         template: source,
@@ -36371,7 +36372,8 @@ async function run() {
     categorySlug,
     repo: config.gitRepo,
     branch: config.branchName,
-    source: firstComponent.source
+    source: firstComponent.source,
+    repoForUpdates: config.gitRepo
   });
   const promises = otherComponents.map(
     (component) => weblate.createComponent({
