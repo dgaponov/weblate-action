@@ -33214,6 +33214,8 @@ function getConfiguration() {
   if (!import_github.context.payload.pull_request) {
     throw Error("Weblate-action works only with pull requests");
   }
+  console.log("Pull request payload:");
+  console.log(JSON.stringify(import_github.context.payload.pull_request, void 0, 2));
   if (!import_github.context.payload.repository?.html_url) {
     throw Error("Repository ssh url not found");
   }

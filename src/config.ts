@@ -25,6 +25,9 @@ export function getConfiguration(): Configuration {
         throw Error('Weblate-action works only with pull requests');
     }
 
+    console.log('Pull request payload:');
+    console.log(JSON.stringify(context.payload.pull_request, undefined, 2));
+
     if (!context.payload.repository?.html_url) {
         throw Error('Repository ssh url not found');
     }
