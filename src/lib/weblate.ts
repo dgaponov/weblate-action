@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, {isAxiosError} from 'axios';
 import type {AxiosInstance} from 'axios';
 import type {Category, Component, Paginated} from './types';
 import {getSlugForBranch, normalizeResponse} from './normalizers';
@@ -133,8 +133,10 @@ export class Weblate {
                 )}/`,
             );
         } catch (error) {
-            console.log(error);
-            return undefined;
+            if (isAxiosError(error) && error.response?.status === 404) {
+                return undefined;
+            }
+            throw error;
         }
     }
 }

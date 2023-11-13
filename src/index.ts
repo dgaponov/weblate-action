@@ -37,7 +37,6 @@ async function run() {
         token: config.token,
         serverUrl: config.serverUrl,
         project: config.project,
-        gitRepo: config.gitRepo,
     });
 
     const {id: categoryId, slug: categorySlug} =

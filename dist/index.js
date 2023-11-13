@@ -33214,10 +33214,8 @@ function getConfiguration() {
   if (!import_github.context.payload.pull_request) {
     throw Error("Weblate-action works only with pull requests");
   }
-  console.log("Pull request payload:");
-  console.log(JSON.stringify(import_github.context.payload.pull_request, void 0, 2));
-  if (!import_github.context.payload.repository?.html_url) {
-    throw Error("Repository ssh url not found");
+  if (!import_github.context.payload.pull_request.head?.repo?.html_url) {
+    throw Error("Repository url not found");
   }
   return {
     serverUrl: (0, import_core.getInput)("SERVER_URL"),
@@ -33225,7 +33223,7 @@ function getConfiguration() {
     project: (0, import_core.getInput)("PROJECT"),
     branchName: getBranchName(),
     fileFormat: (0, import_core.getInput)("FILE_FORMAT"),
-    gitRepo: import_github.context.payload.repository.html_url,
+    gitRepo: import_github.context.payload.pull_request.head.repo.html_url,
     pullRequestNumber: import_github.context.payload.pull_request.number,
     keysetsPath: (0, import_core.getInput)("KEYSETS_PATH")
   };
@@ -36335,8 +36333,10 @@ var Weblate = class {
         )}/`
       );
     } catch (error) {
-      console.log(error);
-      return void 0;
+      if (isAxiosError2(error) && error.response?.status === 404) {
+        return void 0;
+      }
+      throw error;
     }
   }
 };
@@ -36360,8 +36360,7 @@ async function run() {
   const weblate = new Weblate({
     token: config.token,
     serverUrl: config.serverUrl,
-    project: config.project,
-    gitRepo: config.gitRepo
+    project: config.project
   });
   const { id: categoryId, slug: categorySlug } = await weblate.createCategoryForBranch(config.branchName);
   const [firstComponent, ...otherComponents] = await resolveComponents(
