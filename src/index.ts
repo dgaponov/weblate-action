@@ -30,17 +30,17 @@ const resolveComponents = async (keysetsPath: string) => {
 async function run() {
     const config = getConfiguration();
 
-    const configPretty = JSON.stringify(config, undefined, 2);
-    console.log(`Parsed config: ${configPretty}`);
-
     const weblate = new Weblate({
         token: config.token,
         serverUrl: config.serverUrl,
         project: config.project,
     });
 
-    const {id: categoryId, slug: categorySlug} =
-        await weblate.createCategoryForBranch(config.branchName);
+    const {
+        id: categoryId,
+        slug: categorySlug,
+        wasRecentlyCreated: categoryWasRecentlyCreated,
+    } = await weblate.createCategoryForBranch(config.branchName);
 
     const [firstComponent, ...otherComponents] = await resolveComponents(
         config.keysetsPath,
@@ -69,6 +69,13 @@ async function run() {
     );
 
     await Promise.all(promises);
+
+    if (!categoryWasRecentlyCreated) {
+        await weblate.pullComponentRemoteChanges({
+            name: firstComponentInWeblate.name,
+            categorySlug,
+        });
+    }
 }
 
 run();

@@ -36263,11 +36263,18 @@ var Weblate = class {
     if (category) {
       return category;
     }
-    return this.client.post("/api/categories/", {
-      project: `${this.serverUrl}/api/projects/${this.project}/`,
-      name: branchName,
-      slug: getSlugForBranch(branchName)
-    });
+    const createdCategory = await this.client.post(
+      "/api/categories/",
+      {
+        project: `${this.serverUrl}/api/projects/${this.project}/`,
+        name: branchName,
+        slug: getSlugForBranch(branchName)
+      }
+    );
+    return {
+      ...createdCategory,
+      wasRecentlyCreated: true
+    };
   }
   async findCategoryForBranch(branchName) {
     let category;
@@ -36302,7 +36309,7 @@ var Weblate = class {
     if (component) {
       return component;
     }
-    return this.client.post(
+    const createdComponent = await this.client.post(
       `/api/projects/${this.project}/components/`,
       {
         name,
@@ -36320,6 +36327,10 @@ var Weblate = class {
         new_base: source
       }
     );
+    return {
+      ...createdComponent,
+      wasRecentlyCreated: true
+    };
   }
   async findComponent({
     name,
@@ -36339,6 +36350,18 @@ var Weblate = class {
       throw error;
     }
   }
+  pullComponentRemoteChanges({
+    name,
+    categorySlug
+  }) {
+    const componentName = categorySlug ? `${categorySlug}%2F${name}` : name;
+    return this.client.post(
+      `/api/components/${this.project}/${encodeURIComponent(
+        componentName
+      )}/repository/`,
+      { operation: "pull" }
+    );
+  }
 };
 
 // src/index.ts
@@ -36355,14 +36378,16 @@ var resolveComponents = async (keysetsPath) => {
 };
 async function run() {
   const config = getConfiguration();
-  const configPretty = JSON.stringify(config, void 0, 2);
-  console.log(`Parsed config: ${configPretty}`);
   const weblate = new Weblate({
     token: config.token,
     serverUrl: config.serverUrl,
     project: config.project
   });
-  const { id: categoryId, slug: categorySlug } = await weblate.createCategoryForBranch(config.branchName);
+  const {
+    id: categoryId,
+    slug: categorySlug,
+    wasRecentlyCreated: categoryWasRecentlyCreated
+  } = await weblate.createCategoryForBranch(config.branchName);
   const [firstComponent, ...otherComponents] = await resolveComponents(
     config.keysetsPath
   );
@@ -36387,6 +36412,12 @@ async function run() {
     })
   );
   await Promise.all(promises);
+  if (!categoryWasRecentlyCreated) {
+    await weblate.pullComponentRemoteChanges({
+      name: firstComponentInWeblate.name,
+      categorySlug
+    });
+  }
 }
 run();
 /*! Bundled license information:

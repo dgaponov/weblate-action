@@ -39,11 +39,19 @@ export class Weblate {
             return category;
         }
 
-        return this.client.post<Category>('/api/categories/', {
-            project: `${this.serverUrl}/api/projects/${this.project}/`,
-            name: branchName,
-            slug: getSlugForBranch(branchName),
-        });
+        const createdCategory = await this.client.post<Category>(
+            '/api/categories/',
+            {
+                project: `${this.serverUrl}/api/projects/${this.project}/`,
+                name: branchName,
+                slug: getSlugForBranch(branchName),
+            },
+        );
+
+        return {
+            ...createdCategory,
+            wasRecentlyCreated: true,
+        };
     }
 
     async findCategoryForBranch(branchName: string) {
@@ -95,7 +103,7 @@ export class Weblate {
             return component;
         }
 
-        return this.client.post<Component>(
+        const createdComponent = await this.client.post<Component>(
             `/api/projects/${this.project}/components/`,
             {
                 name,
@@ -115,6 +123,11 @@ export class Weblate {
                 new_base: source,
             },
         );
+
+        return {
+            ...createdComponent,
+            wasRecentlyCreated: true,
+        };
     }
 
     async findComponent({
@@ -138,5 +151,22 @@ export class Weblate {
             }
             throw error;
         }
+    }
+
+    pullComponentRemoteChanges({
+        name,
+        categorySlug,
+    }: {
+        name: string;
+        categorySlug?: string;
+    }) {
+        const componentName = categorySlug ? `${categorySlug}%2F${name}` : name;
+
+        return this.client.post(
+            `/api/components/${this.project}/${encodeURIComponent(
+                componentName,
+            )}/repository/`,
+            {operation: 'pull'},
+        );
     }
 }
