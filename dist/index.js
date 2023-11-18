@@ -17830,11 +17830,11 @@ Support boolean input list: \`true | True | TRUE | false | False | FALSE\``);
       command_1.issue("echo", enabled ? "on" : "off");
     }
     exports.setCommandEcho = setCommandEcho;
-    function setFailed(message) {
+    function setFailed2(message) {
       process.exitCode = ExitCode.Failure;
       error(message);
     }
-    exports.setFailed = setFailed;
+    exports.setFailed = setFailed2;
     function isDebug() {
       return process.env["RUNNER_DEBUG"] === "1";
     }
@@ -36336,12 +36336,12 @@ var Weblate = class {
     name,
     categorySlug
   }) {
-    const componentName = categorySlug ? `${categorySlug}%2F${name}` : name;
+    const componentName = encodeURIComponent(
+      categorySlug ? `${categorySlug}%2F${name}` : name
+    );
     try {
       return await this.client.get(
-        `/api/components/${this.project}/${encodeURIComponent(
-          componentName
-        )}/`
+        `/api/components/${this.project}/${componentName}/`
       );
     } catch (error) {
       if (isAxiosError2(error) && error.response?.status === 404) {
@@ -36354,18 +36354,31 @@ var Weblate = class {
     name,
     categorySlug
   }) {
-    const componentName = categorySlug ? `${categorySlug}%2F${name}` : name;
+    const componentName = encodeURIComponent(
+      categorySlug ? `${categorySlug}%2F${name}` : name
+    );
     return this.client.post(
-      `/api/components/${this.project}/${encodeURIComponent(
-        componentName
-      )}/repository/`,
+      `/api/components/${this.project}/${componentName}/repository/`,
       { operation: "pull" }
     );
+  }
+  async getComponentTranslationsStats({
+    name,
+    categorySlug
+  }) {
+    const componentName = encodeURIComponent(
+      categorySlug ? `${categorySlug}%2F${name}` : name
+    );
+    return (await this.client.get(
+      `/api/components/${this.project}/${componentName}/statistics/`
+    )).results;
   }
 };
 
 // src/index.ts
 var import_promises = __toESM(require("fs/promises"));
+var import_core2 = __toESM(require_core());
+var sleep = (time) => new Promise((resolve) => setTimeout(resolve, time));
 var resolveComponents = async (keysetsPath) => {
   const dirents = await import_promises.default.readdir(import_path.default.resolve(process.cwd(), keysetsPath), {
     withFileTypes: true
@@ -36391,7 +36404,7 @@ async function run() {
   const [firstComponent, ...otherComponents] = await resolveComponents(
     config.keysetsPath
   );
-  const firstComponentInWeblate = await weblate.createComponent({
+  const firstWeblateComponent = await weblate.createComponent({
     name: `${firstComponent.name}__${config.pullRequestNumber}`,
     fileMask: firstComponent.fileMask,
     categoryId,
@@ -36401,22 +36414,46 @@ async function run() {
     source: firstComponent.source,
     repoForUpdates: config.gitRepo
   });
-  const promises = otherComponents.map(
+  const createComponentsPromises = otherComponents.map(
     (component) => weblate.createComponent({
       name: `${component.name}__${config.pullRequestNumber}`,
       fileMask: component.fileMask,
       categoryId,
       categorySlug,
-      repo: `weblate://${config.project}/${categorySlug}/${firstComponentInWeblate.slug}`,
+      repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
       source: component.source
     })
   );
-  await Promise.all(promises);
+  const otherWeblateComponents = await Promise.all(createComponentsPromises);
+  const weblateComponents = [
+    firstWeblateComponent,
+    ...otherWeblateComponents
+  ];
   if (!categoryWasRecentlyCreated) {
     await weblate.pullComponentRemoteChanges({
-      name: firstComponentInWeblate.name,
+      name: firstWeblateComponent.name,
       categorySlug
     });
+  }
+  await sleep(2e4);
+  await weblate.getComponentTranslationsStats({
+    name: firstWeblateComponent.name
+  });
+  const componentsStats = await Promise.all(
+    weblateComponents.map(
+      (component) => weblate.getComponentTranslationsStats({
+        name: component.name,
+        categorySlug
+      })
+    )
+  );
+  const failedComponents = componentsStats.flat().filter((stats) => stats.translated_percent !== 100);
+  if (failedComponents.length) {
+    const failedComponentsLinks = failedComponents.map((stat) => stat.url).join("\n");
+    (0, import_core2.setFailed)(
+      `The following components have not been translated:
+${failedComponentsLinks}`
+    );
   }
 }
 run();

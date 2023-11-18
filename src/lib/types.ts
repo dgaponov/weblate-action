@@ -20,3 +20,24 @@ export type Component = {
     slug: string;
     wasRecentlyCreated?: boolean;
 };
+
+export type ComponentTranslationStats = {
+    total: number;
+    total_words: number;
+    total_chars: number;
+    translated: number;
+    translated_words: number;
+    translated_percent: number;
+    translated_words_percent: number;
+    translated_chars: number;
+    translated_chars_percent: number;
+    fuzzy: number;
+    fuzzy_percent: number;
+    failing: number;
+    failing_percent: number;
+    approved: number;
+    approved_percent: number;
+    code: string;
+    name: string;
+    url: string;
+};

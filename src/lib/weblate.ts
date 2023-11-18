@@ -1,6 +1,11 @@
 import axios, {isAxiosError} from 'axios';
 import type {AxiosInstance} from 'axios';
-import type {Category, Component, Paginated} from './types';
+import type {
+    Category,
+    Component,
+    ComponentTranslationStats,
+    Paginated,
+} from './types';
 import {getSlugForBranch, normalizeResponse} from './normalizers';
 
 declare module 'axios' {
@@ -137,13 +142,13 @@ export class Weblate {
         name: string;
         categorySlug?: string;
     }) {
-        const componentName = categorySlug ? `${categorySlug}%2F${name}` : name;
+        const componentName = encodeURIComponent(
+            categorySlug ? `${categorySlug}%2F${name}` : name,
+        );
 
         try {
             return await this.client.get<Component>(
-                `/api/components/${this.project}/${encodeURIComponent(
-                    componentName,
-                )}/`,
+                `/api/components/${this.project}/${componentName}/`,
             );
         } catch (error) {
             if (isAxiosError(error) && error.response?.status === 404) {
@@ -160,13 +165,31 @@ export class Weblate {
         name: string;
         categorySlug?: string;
     }) {
-        const componentName = categorySlug ? `${categorySlug}%2F${name}` : name;
+        const componentName = encodeURIComponent(
+            categorySlug ? `${categorySlug}%2F${name}` : name,
+        );
 
         return this.client.post(
-            `/api/components/${this.project}/${encodeURIComponent(
-                componentName,
-            )}/repository/`,
+            `/api/components/${this.project}/${componentName}/repository/`,
             {operation: 'pull'},
         );
+    }
+
+    async getComponentTranslationsStats({
+        name,
+        categorySlug,
+    }: {
+        name: string;
+        categorySlug?: string;
+    }) {
+        const componentName = encodeURIComponent(
+            categorySlug ? `${categorySlug}%2F${name}` : name,
+        );
+
+        return (
+            await this.client.get<Paginated<ComponentTranslationStats>>(
+                `/api/components/${this.project}/${componentName}/statistics/`,
+            )
+        ).results;
     }
 }

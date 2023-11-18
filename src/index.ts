@@ -2,6 +2,7 @@ import {getConfiguration} from './config';
 import path from 'path';
 import {Weblate} from './lib/weblate';
 import fs from 'fs/promises';
+import {setFailed} from '@actions/core';
 
 /*
     Какой флоу:
@@ -12,6 +13,9 @@ import fs from 'fs/promises';
 
     К имени компонентов добавляем постфикс с id pr
 */
+
+const sleep = (time: number) =>
+    new Promise(resolve => setTimeout(resolve, time));
 
 const resolveComponents = async (keysetsPath: string) => {
     const dirents = await fs.readdir(path.resolve(process.cwd(), keysetsPath), {
@@ -36,6 +40,7 @@ async function run() {
         project: config.project,
     });
 
+    // Create branch
     const {
         id: categoryId,
         slug: categorySlug,
@@ -46,7 +51,8 @@ async function run() {
         config.keysetsPath,
     );
 
-    const firstComponentInWeblate = await weblate.createComponent({
+    // Creating first component
+    const firstWeblateComponent = await weblate.createComponent({
         name: `${firstComponent.name}__${config.pullRequestNumber}`,
         fileMask: firstComponent.fileMask,
         categoryId,
@@ -57,24 +63,62 @@ async function run() {
         repoForUpdates: config.gitRepo,
     });
 
-    const promises = otherComponents.map(component =>
+    // Creating other components with a link to the first component
+    const createComponentsPromises = otherComponents.map(component =>
         weblate.createComponent({
             name: `${component.name}__${config.pullRequestNumber}`,
             fileMask: component.fileMask,
             categoryId,
             categorySlug,
-            repo: `weblate://${config.project}/${categorySlug}/${firstComponentInWeblate.slug}`,
+            repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
             source: component.source,
         }),
     );
 
-    await Promise.all(promises);
+    const otherWeblateComponents = await Promise.all(createComponentsPromises);
 
+    const weblateComponents = [
+        firstWeblateComponent,
+        ...otherWeblateComponents,
+    ];
+
+    // Pulling changes to weblate from remote repository
     if (!categoryWasRecentlyCreated) {
         await weblate.pullComponentRemoteChanges({
-            name: firstComponentInWeblate.name,
+            name: firstWeblateComponent.name,
             categorySlug,
         });
+    }
+
+    // Wait repository update
+    // TODO replace sleep to checking components statuses
+    await sleep(20000);
+
+    await weblate.getComponentTranslationsStats({
+        name: firstWeblateComponent.name,
+    });
+
+    const componentsStats = await Promise.all(
+        weblateComponents.map(component =>
+            weblate.getComponentTranslationsStats({
+                name: component.name,
+                categorySlug,
+            }),
+        ),
+    );
+
+    const failedComponents = componentsStats
+        .flat()
+        .filter(stats => stats.translated_percent !== 100);
+
+    if (failedComponents.length) {
+        const failedComponentsLinks = failedComponents
+            .map(stat => stat.url)
+            .join('\n');
+
+        setFailed(
+            `The following components have not been translated:\n${failedComponentsLinks}`,
+        );
     }
 }
 
