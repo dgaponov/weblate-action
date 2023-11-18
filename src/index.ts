@@ -94,10 +94,6 @@ async function run() {
     // TODO replace sleep to checking components statuses
     await sleep(20000);
 
-    await weblate.getComponentTranslationsStats({
-        name: firstWeblateComponent.name,
-    });
-
     const componentsStats = await Promise.all(
         weblateComponents.map(component =>
             weblate.getComponentTranslationsStats({

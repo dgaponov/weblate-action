@@ -36436,9 +36436,6 @@ async function run() {
     });
   }
   await sleep(2e4);
-  await weblate.getComponentTranslationsStats({
-    name: firstWeblateComponent.name
-  });
   const componentsStats = await Promise.all(
     weblateComponents.map(
       (component) => weblate.getComponentTranslationsStats({
