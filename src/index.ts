@@ -50,6 +50,7 @@ async function run() {
             branch: config.masterBranch,
             source: firstMasterComponent.template,
             repoForUpdates: config.gitRepo,
+            branchForUpdates: config.branchName,
             applyDefaultAddons: false,
         });
 

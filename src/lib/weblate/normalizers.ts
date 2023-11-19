@@ -32,7 +32,7 @@ const normalizeData = (value: Json): Json => {
 
     if (typeof value === 'string') {
         // TODO fix weblate include. Need replace inly weblate urls
-        return value.startsWith('http') && value.includes('weblate')
+        return value.startsWith('http://weblate.example.com')
             ? getUrlLastPart(value)
             : value;
     }

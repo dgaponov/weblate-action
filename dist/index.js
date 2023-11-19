@@ -36207,7 +36207,7 @@ var normalizeData = (value) => {
     return void 0;
   }
   if (typeof value === "string") {
-    return value.startsWith("http") && value.includes("weblate") ? getUrlLastPart(value) : value;
+    return value.startsWith("http://weblate.example.com") ? getUrlLastPart(value) : value;
   }
   if (typeof value === "object") {
     const normalizedObject = value;
@@ -36561,6 +36561,7 @@ async function run() {
       branch: config.masterBranch,
       source: firstMasterComponent.template,
       repoForUpdates: config.gitRepo,
+      branchForUpdates: config.branchName,
       applyDefaultAddons: false
     });
     await Promise.all(
