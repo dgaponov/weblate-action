@@ -149,6 +149,7 @@ export class Weblate {
                 template: source,
                 new_base: source,
                 allow_translation_propagation: false,
+                manage_units: false,
             },
         );
 
@@ -236,7 +237,18 @@ export class Weblate {
             ),
         );
 
-        await Promise.all(promises);
+        try {
+            await Promise.all(promises);
+        } catch (error) {
+            // Ignore error like 'Add-on already installed'
+            if (
+                !isAxiosError(error) ||
+                !error.response?.data ||
+                !('name' in error.response.data)
+            ) {
+                throw error;
+            }
+        }
     }
 
     async getAddonName(id: string) {

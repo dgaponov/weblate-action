@@ -33230,9 +33230,6 @@ function getConfiguration() {
   };
 }
 
-// src/index.ts
-var import_path = __toESM(require("path"));
-
 // node_modules/axios/lib/helpers/bind.js
 function bind(fn, thisArg) {
   return function wrap() {
@@ -36191,7 +36188,7 @@ var {
   mergeConfig: mergeConfig2
 } = axios_default;
 
-// src/lib/normalizers.ts
+// src/lib/weblate/normalizers.ts
 var import_kebabCase = __toESM(require_kebabCase());
 var getUrlLastPart = (url2) => {
   const parts = url2.split("/").filter(Boolean);
@@ -36245,7 +36242,7 @@ var normalizeResponse = (response) => {
 };
 var getSlugForBranch = (branchName) => (0, import_kebabCase.default)(branchName);
 
-// src/lib/weblate.ts
+// src/lib/weblate/weblate.ts
 var DEFAULT_COMPONENT_ADDONS = [
   {
     name: "weblate.git.squash",
@@ -36347,7 +36344,8 @@ var Weblate = class {
         category: categoryId ? `${this.serverUrl}/api/categories/${categoryId}/` : void 0,
         template: source,
         new_base: source,
-        allow_translation_propagation: false
+        allow_translation_propagation: false,
+        manage_units: false
       }
     );
     await this.applyDefaultAddonsToComponent({ name, categorySlug });
@@ -36410,7 +36408,13 @@ var Weblate = class {
         { name: addon.name, configuration: addon.configuration }
       )
     );
-    await Promise.all(promises);
+    try {
+      await Promise.all(promises);
+    } catch (error) {
+      if (!isAxiosError2(error) || !error.response?.data || !("name" in error.response.data)) {
+        throw error;
+      }
+    }
   }
   async getAddonName(id) {
     return (await this.client.get(`/api/addons/${id}/`)).name;
@@ -36428,10 +36432,9 @@ var Weblate = class {
   }
 };
 
-// src/index.ts
+// src/utils.ts
 var import_promises = __toESM(require("fs/promises"));
-var import_core2 = __toESM(require_core());
-var import_github2 = __toESM(require_github());
+var import_path = __toESM(require("path"));
 var sleep = (time) => new Promise((resolve) => setTimeout(resolve, time));
 var resolveComponents = async (keysetsPath) => {
   const dirents = await import_promises.default.readdir(import_path.default.resolve(process.cwd(), keysetsPath), {
@@ -36443,6 +36446,10 @@ var resolveComponents = async (keysetsPath) => {
     fileMask: import_path.default.join(keysetsPath, name, "*.json")
   }));
 };
+
+// src/index.ts
+var import_core2 = __toESM(require_core());
+var import_github2 = __toESM(require_github());
 async function run() {
   const config = getConfiguration();
   const weblate = new Weblate({
@@ -36456,7 +36463,9 @@ async function run() {
     id: categoryId,
     slug: categorySlug,
     wasRecentlyCreated: categoryWasRecentlyCreated
-  } = await weblate.createCategoryForBranch(config.branchName);
+  } = await weblate.createCategoryForBranch(
+    `${config.branchName}__${config.pullRequestNumber}`
+  );
   const [firstComponent, ...otherComponents] = await resolveComponents(
     config.keysetsPath
   );
@@ -36504,6 +36513,7 @@ async function run() {
   if (failedComponents.length) {
     const failedComponentsLinks = failedComponents.map((stat) => stat.url).join("\n");
     const errorMessage = [
+      "**i18n-check**",
       "The following components have not been translated:",
       `${failedComponentsLinks}
 `,
@@ -36521,9 +36531,11 @@ async function run() {
     name: firstWeblateComponent.name,
     categorySlug
   });
-  console.log(JSON.stringify(repositoryInfo, void 0, 2));
   if (repositoryInfo.needs_push) {
-    const errorMessage = "Please merge the Pull Request with the changes from Weblate into your branch.";
+    const errorMessage = [
+      "**i18n-check**",
+      "Please merge the Pull Request with the changes from Weblate into your branch."
+    ].join("\n");
     await octokit.rest.issues.createComment({
       ...import_github2.context.repo,
       issue_number: config.pullRequestNumber,
@@ -36532,7 +36544,10 @@ async function run() {
     (0, import_core2.setFailed)(errorMessage);
   }
   if (repositoryInfo.needs_commit) {
-    const errorMessage = "The reviewer is still working on checking your i18n changes. Wait for a Pull Request from Weblate.";
+    const errorMessage = [
+      "**i18n-check**",
+      "The reviewer is still working on checking your i18n changes. Wait for a Pull Request from Weblate."
+    ].join("\n");
     await octokit.rest.issues.createComment({
       ...import_github2.context.repo,
       issue_number: config.pullRequestNumber,
@@ -36543,8 +36558,12 @@ async function run() {
   }
   if (repositoryInfo.merge_failure) {
     const errorMessage = [
+      "**i18n-check**",
       "Errors occurred when merging changes from your branch with the Weblate branch.",
-      repositoryInfo.merge_failure
+      `\`\`\`${repositoryInfo.merge_failure}\`\`\`
+`,
+      "Resolve conflicts according to instructions",
+      "https://docs.weblate.org/en/latest/faq.html#how-to-fix-merge-conflicts-in-translations"
     ].join("\n");
     await octokit.rest.issues.createComment({
       ...import_github2.context.repo,

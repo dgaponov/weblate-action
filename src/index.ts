@@ -1,36 +1,8 @@
 import {getConfiguration} from './config';
-import path from 'path';
 import {Weblate} from './lib/weblate';
-import fs from 'fs/promises';
+import {resolveComponents, sleep} from './utils';
 import {setFailed} from '@actions/core';
 import {context, getOctokit} from '@actions/github';
-
-/*
-    Какой флоу:
-    1. Заводим новую категорию для ветки (если уже создана, то пропускаем). Имя категории = имени ветки.
-    2.1. (пока делаю его) Создаем все компоненты в эой категории.
-    2.2. (под вопросом) Создаем первый компонент в этой категории. Добавляем все остальные компоненты со ссылкой на первый компонент ( weblate://{project}/{componentNameFirst} ) https://docs.weblate.org/ru/weblate-5.1.1/vcs.html#internal-urls
-    3. Ждем подтверждение всех ключей. Если по стате все ключи подтверждены, то ставим success.
-
-    К имени компонентов добавляем постфикс с id pr
-*/
-
-const sleep = (time: number) =>
-    new Promise(resolve => setTimeout(resolve, time));
-
-const resolveComponents = async (keysetsPath: string) => {
-    const dirents = await fs.readdir(path.resolve(process.cwd(), keysetsPath), {
-        withFileTypes: true,
-    });
-
-    return dirents
-        .filter(dirent => dirent.isDirectory() && !dirent.name.startsWith('.'))
-        .map(({name}) => ({
-            name,
-            source: path.join(keysetsPath, name, 'en.json'),
-            fileMask: path.join(keysetsPath, name, '*.json'),
-        }));
-};
 
 async function run() {
     const config = getConfiguration();
@@ -49,7 +21,9 @@ async function run() {
         id: categoryId,
         slug: categorySlug,
         wasRecentlyCreated: categoryWasRecentlyCreated,
-    } = await weblate.createCategoryForBranch(config.branchName);
+    } = await weblate.createCategoryForBranch(
+        `${config.branchName}__${config.pullRequestNumber}`,
+    );
 
     const [firstComponent, ...otherComponents] = await resolveComponents(
         config.keysetsPath,
@@ -117,6 +91,7 @@ async function run() {
             .join('\n');
 
         const errorMessage = [
+            '**i18n-check**',
             'The following components have not been translated:',
             `${failedComponentsLinks}\n`,
             'Wait for the reviewers to check your changes in Weblate and try running github action again.',
@@ -137,11 +112,11 @@ async function run() {
         categorySlug,
     });
 
-    console.log(JSON.stringify(repositoryInfo, undefined, 2));
-
     if (repositoryInfo.needs_push) {
-        const errorMessage =
-            'Please merge the Pull Request with the changes from Weblate into your branch.';
+        const errorMessage = [
+            '**i18n-check**',
+            'Please merge the Pull Request with the changes from Weblate into your branch.',
+        ].join('\n');
 
         await octokit.rest.issues.createComment({
             ...context.repo,
@@ -153,8 +128,10 @@ async function run() {
     }
 
     if (repositoryInfo.needs_commit) {
-        const errorMessage =
-            'The reviewer is still working on checking your i18n changes. Wait for a Pull Request from Weblate.';
+        const errorMessage = [
+            '**i18n-check**',
+            'The reviewer is still working on checking your i18n changes. Wait for a Pull Request from Weblate.',
+        ].join('\n');
 
         await octokit.rest.issues.createComment({
             ...context.repo,
@@ -168,8 +145,11 @@ async function run() {
 
     if (repositoryInfo.merge_failure) {
         const errorMessage = [
+            '**i18n-check**',
             'Errors occurred when merging changes from your branch with the Weblate branch.',
-            repositoryInfo.merge_failure,
+            `\`\`\`${repositoryInfo.merge_failure}\`\`\`\n`,
+            'Resolve conflicts according to instructions',
+            'https://docs.weblate.org/en/latest/faq.html#how-to-fix-merge-conflicts-in-translations',
         ].join('\n');
 
         await octokit.rest.issues.createComment({
