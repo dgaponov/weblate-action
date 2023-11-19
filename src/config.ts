@@ -10,6 +10,7 @@ export interface Configuration {
     gitRepo: string;
     pullRequestNumber: number;
     keysetsPath: string;
+    masterBranch: string;
     githubToken: string;
 }
 
@@ -39,6 +40,7 @@ export function getConfiguration(): Configuration {
         gitRepo: context.payload.pull_request.head.repo.html_url as string,
         pullRequestNumber: context.payload.pull_request.number,
         keysetsPath: getInput('KEYSETS_PATH'),
+        masterBranch: getInput('MASTER_BRANCH'),
         githubToken: getInput('GITHUB_TOKEN'),
     };
 }

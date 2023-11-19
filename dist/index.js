@@ -33226,6 +33226,7 @@ function getConfiguration() {
     gitRepo: import_github.context.payload.pull_request.head.repo.html_url,
     pullRequestNumber: import_github.context.payload.pull_request.number,
     keysetsPath: (0, import_core.getInput)("KEYSETS_PATH"),
+    masterBranch: (0, import_core.getInput)("MASTER_BRANCH"),
     githubToken: (0, import_core.getInput)("GITHUB_TOKEN")
   };
 }
@@ -36322,10 +36323,33 @@ var Weblate = class {
     branch,
     categoryId,
     categorySlug,
-    repoForUpdates
+    repoForUpdates,
+    branchForUpdates,
+    applyDefaultAddons = true,
+    updateIfExist
   }) {
     const component = await this.findComponent({ name, categorySlug });
     if (component) {
+      if (updateIfExist) {
+        await this.updateComponent({
+          name,
+          categorySlug,
+          repo,
+          branch,
+          branchForUpdates
+        });
+        if (applyDefaultAddons) {
+          await this.applyDefaultAddonsToComponent({
+            name,
+            categorySlug
+          });
+        }
+        return {
+          ...component,
+          repo,
+          branch
+        };
+      }
       return component;
     }
     const createdComponent = await this.client.post(
@@ -36339,7 +36363,7 @@ var Weblate = class {
         vcs: "github",
         repo,
         push: repoForUpdates,
-        push_branch: repoForUpdates ? branch : void 0,
+        push_branch: repoForUpdates ? branchForUpdates || branch : void 0,
         branch,
         category: categoryId ? `${this.serverUrl}/api/categories/${categoryId}/` : void 0,
         template: source,
@@ -36348,7 +36372,9 @@ var Weblate = class {
         manage_units: false
       }
     );
-    await this.applyDefaultAddonsToComponent({ name, categorySlug });
+    if (applyDefaultAddons) {
+      await this.applyDefaultAddonsToComponent({ name, categorySlug });
+    }
     return {
       ...createdComponent,
       wasRecentlyCreated: true
@@ -36371,6 +36397,55 @@ var Weblate = class {
       }
       throw error;
     }
+  }
+  async updateComponent({
+    name,
+    categorySlug,
+    repo,
+    branch,
+    repoForUpdates,
+    branchForUpdates
+  }) {
+    const componentName = encodeURIComponent(
+      categorySlug ? `${categorySlug}%2F${name}` : name
+    );
+    try {
+      return await this.client.put(
+        `/api/components/${this.project}/${componentName}/`,
+        {
+          repo,
+          push: repoForUpdates,
+          push_branch: repoForUpdates ? branchForUpdates || branch : void 0,
+          branch
+        }
+      );
+    } catch (error) {
+      if (isAxiosError2(error) && error.response?.status === 404) {
+        return void 0;
+      }
+      throw error;
+    }
+  }
+  async getComponentsInCategory({ categoryId }) {
+    const components = [];
+    let page = 1;
+    while (page) {
+      const { next, results } = await this.client.get(
+        `/api/projects/${this.project}/components/`,
+        {
+          params: { page }
+        }
+      );
+      components.push(
+        ...results.filter(({ category }) => category === categoryId)
+      );
+      if (next) {
+        page = next;
+      } else {
+        break;
+      }
+    }
+    return components;
   }
   pullComponentRemoteChanges({
     name,
@@ -36466,6 +36541,43 @@ async function run() {
   } = await weblate.createCategoryForBranch(
     `${config.branchName}__${config.pullRequestNumber}`
   );
+  if (categoryWasRecentlyCreated) {
+    const masterCategory = await weblate.findCategoryForBranch(
+      config.masterBranch
+    );
+    if (!masterCategory) {
+      (0, import_core2.setFailed)(`Not found category for branch '${config.masterBranch}'`);
+      return;
+    }
+    const [firstMasterComponent, ...otherMasterComponents] = await weblate.getComponentsInCategory({
+      categoryId: masterCategory.id
+    });
+    const firstCopiedComponent = await weblate.createComponent({
+      name: `${firstMasterComponent.name}__${config.pullRequestNumber}`,
+      fileMask: firstMasterComponent.filemask,
+      categoryId,
+      categorySlug,
+      repo: firstMasterComponent.repo,
+      branch: config.masterBranch,
+      source: firstMasterComponent.template,
+      repoForUpdates: config.gitRepo,
+      applyDefaultAddons: false
+    });
+    await Promise.all(
+      otherMasterComponents.map(
+        (component) => weblate.createComponent({
+          name: `${component.name}__${config.pullRequestNumber}`,
+          fileMask: component.filemask,
+          categoryId,
+          categorySlug,
+          repo: `weblate://${config.project}/${categorySlug}/${firstCopiedComponent.slug}`,
+          source: component.template,
+          applyDefaultAddons: false
+        })
+      )
+    );
+    await sleep(6e4);
+  }
   const [firstComponent, ...otherComponents] = await resolveComponents(
     config.keysetsPath
   );
@@ -36477,7 +36589,8 @@ async function run() {
     repo: config.gitRepo,
     branch: config.branchName,
     source: firstComponent.source,
-    repoForUpdates: config.gitRepo
+    repoForUpdates: config.gitRepo,
+    updateIfExist: categoryWasRecentlyCreated
   });
   const createComponentsPromises = otherComponents.map(
     (component) => weblate.createComponent({
@@ -36486,7 +36599,8 @@ async function run() {
       categoryId,
       categorySlug,
       repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
-      source: component.source
+      source: component.source,
+      updateIfExist: categoryWasRecentlyCreated
     })
   );
   const otherWeblateComponents = await Promise.all(createComponentsPromises);
@@ -36500,7 +36614,7 @@ async function run() {
       categorySlug
     });
   }
-  await sleep(2e4);
+  await sleep(6e4);
   const componentsStats = await Promise.all(
     weblateComponents.map(
       (component) => weblate.getComponentTranslationsStats({

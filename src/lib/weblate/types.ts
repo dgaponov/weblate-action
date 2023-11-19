@@ -19,6 +19,10 @@ export type Component = {
     name: string;
     slug: string;
     addons: string[];
+    filemask: string;
+    repo: string;
+    template: string;
+    category?: string;
     wasRecentlyCreated?: boolean;
 };
 

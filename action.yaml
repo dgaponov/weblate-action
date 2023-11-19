@@ -18,6 +18,9 @@ inputs:
   KEYSETS_PATH:
     required: false
     default: 'src/i18n-keysets'
+  MASTER_BRANCH:
+    required: false
+    default: 'main'
   GITHUB_TOKEN:
     description: 'Token for creating comments in pull request'
     required: true

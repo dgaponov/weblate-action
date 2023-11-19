@@ -114,6 +114,9 @@ export class Weblate {
         categoryId,
         categorySlug,
         repoForUpdates,
+        branchForUpdates,
+        applyDefaultAddons = true,
+        updateIfExist,
     }: {
         name: string;
         fileMask: string;
@@ -123,10 +126,36 @@ export class Weblate {
         categoryId?: string;
         categorySlug?: string;
         repoForUpdates?: string;
+        branchForUpdates?: string;
+        applyDefaultAddons?: boolean;
+        updateIfExist?: boolean;
     }) {
         const component = await this.findComponent({name, categorySlug});
 
         if (component) {
+            if (updateIfExist) {
+                await this.updateComponent({
+                    name,
+                    categorySlug,
+                    repo,
+                    branch,
+                    branchForUpdates,
+                });
+
+                if (applyDefaultAddons) {
+                    await this.applyDefaultAddonsToComponent({
+                        name,
+                        categorySlug,
+                    });
+                }
+
+                return {
+                    ...component,
+                    repo,
+                    branch,
+                };
+            }
+
             return component;
         }
 
@@ -141,7 +170,9 @@ export class Weblate {
                 vcs: 'github',
                 repo,
                 push: repoForUpdates,
-                push_branch: repoForUpdates ? branch : undefined,
+                push_branch: repoForUpdates
+                    ? branchForUpdates || branch
+                    : undefined,
                 branch,
                 category: categoryId
                     ? `${this.serverUrl}/api/categories/${categoryId}/`
@@ -153,7 +184,9 @@ export class Weblate {
             },
         );
 
-        await this.applyDefaultAddonsToComponent({name, categorySlug});
+        if (applyDefaultAddons) {
+            await this.applyDefaultAddonsToComponent({name, categorySlug});
+        }
 
         return {
             ...createdComponent,
@@ -182,6 +215,71 @@ export class Weblate {
             }
             throw error;
         }
+    }
+
+    async updateComponent({
+        name,
+        categorySlug,
+        repo,
+        branch,
+        repoForUpdates,
+        branchForUpdates,
+    }: {
+        name: string;
+        categorySlug?: string;
+        repo: string;
+        branch?: string;
+        repoForUpdates?: string;
+        branchForUpdates?: string;
+    }) {
+        const componentName = encodeURIComponent(
+            categorySlug ? `${categorySlug}%2F${name}` : name,
+        );
+
+        try {
+            return await this.client.put<Component>(
+                `/api/components/${this.project}/${componentName}/`,
+                {
+                    repo,
+                    push: repoForUpdates,
+                    push_branch: repoForUpdates
+                        ? branchForUpdates || branch
+                        : undefined,
+                    branch,
+                },
+            );
+        } catch (error) {
+            if (isAxiosError(error) && error.response?.status === 404) {
+                return undefined;
+            }
+            throw error;
+        }
+    }
+
+    async getComponentsInCategory({categoryId}: {categoryId: string}) {
+        const components: Component[] = [];
+        let page = 1;
+
+        while (page) {
+            const {next, results} = await this.client.get<Paginated<Component>>(
+                `/api/projects/${this.project}/components/`,
+                {
+                    params: {page},
+                },
+            );
+
+            components.push(
+                ...results.filter(({category}) => category === categoryId),
+            );
+
+            if (next) {
+                page = next;
+            } else {
+                break;
+            }
+        }
+
+        return components;
     }
 
     pullComponentRemoteChanges({

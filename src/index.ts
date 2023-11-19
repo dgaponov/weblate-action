@@ -16,7 +16,7 @@ async function run() {
 
     const octokit = getOctokit(config.githubToken);
 
-    // Create branch
+    // Create category for feature branch
     const {
         id: categoryId,
         slug: categorySlug,
@@ -25,11 +25,59 @@ async function run() {
         `${config.branchName}__${config.pullRequestNumber}`,
     );
 
+    // If the category was recently created, then we need to copy components from master branch
+    if (categoryWasRecentlyCreated) {
+        const masterCategory = await weblate.findCategoryForBranch(
+            config.masterBranch,
+        );
+
+        if (!masterCategory) {
+            setFailed(`Not found category for branch '${config.masterBranch}'`);
+            return;
+        }
+
+        const [firstMasterComponent, ...otherMasterComponents] =
+            await weblate.getComponentsInCategory({
+                categoryId: masterCategory.id,
+            });
+
+        const firstCopiedComponent = await weblate.createComponent({
+            name: `${firstMasterComponent.name}__${config.pullRequestNumber}`,
+            fileMask: firstMasterComponent.filemask,
+            categoryId,
+            categorySlug,
+            repo: firstMasterComponent.repo,
+            branch: config.masterBranch,
+            source: firstMasterComponent.template,
+            repoForUpdates: config.gitRepo,
+            applyDefaultAddons: false,
+        });
+
+        await Promise.all(
+            otherMasterComponents.map(component =>
+                weblate.createComponent({
+                    name: `${component.name}__${config.pullRequestNumber}`,
+                    fileMask: component.filemask,
+                    categoryId,
+                    categorySlug,
+                    repo: `weblate://${config.project}/${categorySlug}/${firstCopiedComponent.slug}`,
+                    source: component.template,
+                    applyDefaultAddons: false,
+                }),
+            ),
+        );
+
+        // Wait repository update
+        // TODO replace sleep to checking components statuses
+        await sleep(60000);
+    }
+
+    // Resolve components from file structure in feature branch
     const [firstComponent, ...otherComponents] = await resolveComponents(
         config.keysetsPath,
     );
 
-    // Creating first component
+    // Creating first component for feature branch
     const firstWeblateComponent = await weblate.createComponent({
         name: `${firstComponent.name}__${config.pullRequestNumber}`,
         fileMask: firstComponent.fileMask,
@@ -39,6 +87,7 @@ async function run() {
         branch: config.branchName,
         source: firstComponent.source,
         repoForUpdates: config.gitRepo,
+        updateIfExist: categoryWasRecentlyCreated,
     });
 
     // Creating other components with a link to the first component
@@ -50,6 +99,7 @@ async function run() {
             categorySlug,
             repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
             source: component.source,
+            updateIfExist: categoryWasRecentlyCreated,
         }),
     );
 
@@ -70,7 +120,7 @@ async function run() {
 
     // Wait repository update
     // TODO replace sleep to checking components statuses
-    await sleep(20000);
+    await sleep(60000);
 
     const componentsStats = await Promise.all(
         weblateComponents.map(component =>
