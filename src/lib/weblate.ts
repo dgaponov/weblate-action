@@ -3,6 +3,7 @@ import type {AxiosInstance} from 'axios';
 import type {
     Category,
     Component,
+    ComponentRepository,
     ComponentTranslationStats,
     Paginated,
 } from './types';
@@ -241,5 +242,21 @@ export class Weblate {
     async getAddonName(id: string) {
         return (await this.client.get<{name: string}>(`/api/addons/${id}/`))
             .name;
+    }
+
+    getComponentRepository({
+        name,
+        categorySlug,
+    }: {
+        name: string;
+        categorySlug?: string;
+    }) {
+        const componentName = encodeURIComponent(
+            categorySlug ? `${categorySlug}%2F${name}` : name,
+        );
+
+        return this.client.get<ComponentRepository>(
+            `/api/components/${this.project}/${componentName}/repository/`,
+        );
     }
 }

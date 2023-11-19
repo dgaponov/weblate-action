@@ -36415,6 +36415,17 @@ var Weblate = class {
   async getAddonName(id) {
     return (await this.client.get(`/api/addons/${id}/`)).name;
   }
+  getComponentRepository({
+    name,
+    categorySlug
+  }) {
+    const componentName = encodeURIComponent(
+      categorySlug ? `${categorySlug}%2F${name}` : name
+    );
+    return this.client.get(
+      `/api/components/${this.project}/${componentName}/repository/`
+    );
+  }
 };
 
 // src/index.ts
@@ -36492,14 +36503,55 @@ async function run() {
   const failedComponents = componentsStats.flat().filter((stats) => stats.translated_percent !== 100);
   if (failedComponents.length) {
     const failedComponentsLinks = failedComponents.map((stat) => stat.url).join("\n");
-    const errorMessage = `The following components have not been translated:
-${failedComponentsLinks}`;
+    const errorMessage = [
+      "The following components have not been translated:",
+      `${failedComponentsLinks}
+`,
+      "Wait for the reviewers to check your changes in Weblate and try running github action again."
+    ].join("\n");
     await octokit.rest.issues.createComment({
       ...import_github2.context.repo,
       issue_number: config.pullRequestNumber,
       body: errorMessage
     });
     (0, import_core2.setFailed)(errorMessage);
+    return;
+  }
+  const repositoryInfo = await weblate.getComponentRepository({
+    name: firstWeblateComponent.name,
+    categorySlug
+  });
+  if (repositoryInfo.needs_push) {
+    const errorMessage = "Please merge the Pull Request with the changes from Weblate into your branch.";
+    await octokit.rest.issues.createComment({
+      ...import_github2.context.repo,
+      issue_number: config.pullRequestNumber,
+      body: errorMessage
+    });
+    (0, import_core2.setFailed)(errorMessage);
+  }
+  if (repositoryInfo.needs_commit) {
+    const errorMessage = "The reviewer is still working on checking your i18n changes. Wait for a Pull Request from Weblate.";
+    await octokit.rest.issues.createComment({
+      ...import_github2.context.repo,
+      issue_number: config.pullRequestNumber,
+      body: errorMessage
+    });
+    (0, import_core2.setFailed)(errorMessage);
+    return;
+  }
+  if (repositoryInfo.merge_failure) {
+    const errorMessage = [
+      "Errors occurred when merging changes from your branch with the Weblate branch.",
+      repositoryInfo.merge_failure
+    ].join("\n");
+    await octokit.rest.issues.createComment({
+      ...import_github2.context.repo,
+      issue_number: config.pullRequestNumber,
+      body: errorMessage
+    });
+    (0, import_core2.setFailed)(errorMessage);
+    return;
   }
 }
 run();

@@ -116,7 +116,11 @@ async function run() {
             .map(stat => stat.url)
             .join('\n');
 
-        const errorMessage = `The following components have not been translated:\n${failedComponentsLinks}`;
+        const errorMessage = [
+            'The following components have not been translated:',
+            `${failedComponentsLinks}\n`,
+            'Wait for the reviewers to check your changes in Weblate and try running github action again.',
+        ].join('\n');
 
         await octokit.rest.issues.createComment({
             ...context.repo,
@@ -125,6 +129,55 @@ async function run() {
         });
 
         setFailed(errorMessage);
+        return;
+    }
+
+    const repositoryInfo = await weblate.getComponentRepository({
+        name: firstWeblateComponent.name,
+        categorySlug,
+    });
+
+    if (repositoryInfo.needs_push) {
+        const errorMessage =
+            'Please merge the Pull Request with the changes from Weblate into your branch.';
+
+        await octokit.rest.issues.createComment({
+            ...context.repo,
+            issue_number: config.pullRequestNumber,
+            body: errorMessage,
+        });
+
+        setFailed(errorMessage);
+    }
+
+    if (repositoryInfo.needs_commit) {
+        const errorMessage =
+            'The reviewer is still working on checking your i18n changes. Wait for a Pull Request from Weblate.';
+
+        await octokit.rest.issues.createComment({
+            ...context.repo,
+            issue_number: config.pullRequestNumber,
+            body: errorMessage,
+        });
+
+        setFailed(errorMessage);
+        return;
+    }
+
+    if (repositoryInfo.merge_failure) {
+        const errorMessage = [
+            'Errors occurred when merging changes from your branch with the Weblate branch.',
+            repositoryInfo.merge_failure,
+        ].join('\n');
+
+        await octokit.rest.issues.createComment({
+            ...context.repo,
+            issue_number: config.pullRequestNumber,
+            body: errorMessage,
+        });
+
+        setFailed(errorMessage);
+        return;
     }
 }
 

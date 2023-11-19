@@ -42,3 +42,10 @@ export type ComponentTranslationStats = {
     name: string;
     url: string;
 };
+
+export type ComponentRepository = {
+    needs_commit: boolean;
+    needs_merge: boolean;
+    needs_push: boolean;
+    merge_failure?: string;
+};
