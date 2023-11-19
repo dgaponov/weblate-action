@@ -3,6 +3,7 @@ import path from 'path';
 import {Weblate} from './lib/weblate';
 import fs from 'fs/promises';
 import {setFailed} from '@actions/core';
+import {context, getOctokit} from '@actions/github';
 
 /*
     Какой флоу:
@@ -38,7 +39,10 @@ async function run() {
         token: config.token,
         serverUrl: config.serverUrl,
         project: config.project,
+        fileFormat: config.fileFormat,
     });
+
+    const octokit = getOctokit(config.githubToken);
 
     // Create branch
     const {
@@ -112,9 +116,15 @@ async function run() {
             .map(stat => stat.url)
             .join('\n');
 
-        setFailed(
-            `The following components have not been translated:\n${failedComponentsLinks}`,
-        );
+        const errorMessage = `The following components have not been translated:\n${failedComponentsLinks}`;
+
+        await octokit.rest.issues.createComment({
+            ...context.repo,
+            issue_number: config.pullRequestNumber,
+            body: errorMessage,
+        });
+
+        setFailed(errorMessage);
     }
 }
 

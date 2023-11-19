@@ -38,11 +38,17 @@ const normalizeData = (value: Json): Json => {
         const normalizedObject = value;
 
         for (const objectKey of Object.keys(value)) {
-            normalizedObject[objectKey] = normalizeData(value[objectKey]);
-        }
+            const valueToNormalize = value[objectKey];
 
-        if ('url' in normalizedObject && !('id' in normalizedObject)) {
-            normalizedObject['id'] = normalizedObject.url;
+            if (
+                typeof valueToNormalize === 'string' &&
+                objectKey === 'url' &&
+                !('id' in normalizedObject)
+            ) {
+                normalizedObject.id = getUrlLastPart(valueToNormalize);
+            } else {
+                normalizedObject[objectKey] = normalizeData(value[objectKey]);
+            }
         }
 
         return normalizedObject;

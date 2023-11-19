@@ -18,6 +18,7 @@ export type Component = {
     project: string;
     name: string;
     slug: string;
+    addons: string[];
     wasRecentlyCreated?: boolean;
 };
 

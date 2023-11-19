@@ -18,6 +18,9 @@ inputs:
   KEYSETS_PATH:
     required: false
     default: 'src/i18n-keysets'
+  GITHUB_TOKEN:
+    description: 'Token for creating comments in pull request'
+    required: true
 
 runs:
   using: 'node20'

@@ -12,20 +12,41 @@ declare module 'axios' {
     interface AxiosResponse<T = any> extends Promise<T> {}
 }
 
+const DEFAULT_COMPONENT_ADDONS = [
+    {
+        name: 'weblate.git.squash',
+        configuration: {
+            squash: 'all',
+        },
+    },
+    {
+        name: 'weblate.flags.target_edit',
+    },
+    {name: 'weblate.flags.source_edit'},
+];
+
 interface WeblateConstructorArg {
     serverUrl: string;
     token: string;
     project: string;
+    fileFormat: string;
 }
 
 export class Weblate {
     private serverUrl: string;
     private project: string;
+    private fileFormat: string;
     private client: AxiosInstance;
 
-    constructor({serverUrl, token, project}: WeblateConstructorArg) {
+    constructor({
+        serverUrl,
+        token,
+        project,
+        fileFormat,
+    }: WeblateConstructorArg) {
         this.serverUrl = serverUrl;
         this.project = project;
+        this.fileFormat = fileFormat;
 
         this.client = axios.create({
             baseURL: serverUrl,
@@ -114,7 +135,7 @@ export class Weblate {
                 name,
                 slug: name,
                 source_language: {code: 'en', name: 'English'},
-                file_format: 'i18next',
+                file_format: this.fileFormat,
                 filemask: fileMask,
                 vcs: 'github',
                 repo,
@@ -126,8 +147,11 @@ export class Weblate {
                     : undefined,
                 template: source,
                 new_base: source,
+                allow_translation_propagation: false,
             },
         );
+
+        await this.applyDefaultAddonsToComponent({name, categorySlug});
 
         return {
             ...createdComponent,
@@ -191,5 +215,31 @@ export class Weblate {
                 `/api/components/${this.project}/${componentName}/statistics/`,
             )
         ).results;
+    }
+
+    async applyDefaultAddonsToComponent({
+        name,
+        categorySlug,
+    }: {
+        name: string;
+        categorySlug?: string;
+    }) {
+        const componentName = encodeURIComponent(
+            categorySlug ? `${categorySlug}%2F${name}` : name,
+        );
+
+        const promises = DEFAULT_COMPONENT_ADDONS.map(addon =>
+            this.client.post(
+                `/api/components/${this.project}/${componentName}/addons/`,
+                {name: addon.name, configuration: addon.configuration},
+            ),
+        );
+
+        await Promise.all(promises);
+    }
+
+    async getAddonName(id: string) {
+        return (await this.client.get<{name: string}>(`/api/addons/${id}/`))
+            .name;
     }
 }
