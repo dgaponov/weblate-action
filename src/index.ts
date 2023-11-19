@@ -137,6 +137,8 @@ async function run() {
         categorySlug,
     });
 
+    console.log(JSON.stringify(repositoryInfo, undefined, 2));
+
     if (repositoryInfo.needs_push) {
         const errorMessage =
             'Please merge the Pull Request with the changes from Weblate into your branch.';

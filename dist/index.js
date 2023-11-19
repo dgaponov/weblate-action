@@ -36521,6 +36521,7 @@ async function run() {
     name: firstWeblateComponent.name,
     categorySlug
   });
+  console.log(JSON.stringify(repositoryInfo, void 0, 2));
   if (repositoryInfo.needs_push) {
     const errorMessage = "Please merge the Pull Request with the changes from Weblate into your branch.";
     await octokit.rest.issues.createComment({
