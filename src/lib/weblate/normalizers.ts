@@ -31,7 +31,10 @@ const normalizeData = (value: Json): Json => {
     }
 
     if (typeof value === 'string') {
-        return value.startsWith('http') ? getUrlLastPart(value) : value;
+        // TODO fix weblate include. Need replace inly weblate urls
+        return value.startsWith('http') && value.includes('weblate')
+            ? getUrlLastPart(value)
+            : value;
     }
 
     if (typeof value === 'object') {

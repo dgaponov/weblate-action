@@ -36207,7 +36207,7 @@ var normalizeData = (value) => {
     return void 0;
   }
   if (typeof value === "string") {
-    return value.startsWith("http") ? getUrlLastPart(value) : value;
+    return value.startsWith("http") && value.includes("weblate") ? getUrlLastPart(value) : value;
   }
   if (typeof value === "object") {
     const normalizedObject = value;
