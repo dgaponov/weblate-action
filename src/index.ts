@@ -36,33 +36,24 @@ async function run() {
             return;
         }
 
-        const [firstMasterComponent, ...otherMasterComponents] =
-            await weblate.getComponentsInCategory({
-                categoryId: masterCategory.id,
-            });
-
-        const firstCopiedComponent = await weblate.createComponent({
-            name: `${firstMasterComponent.name}__${config.pullRequestNumber}`,
-            fileMask: firstMasterComponent.filemask,
-            categoryId,
-            categorySlug,
-            repo: firstMasterComponent.repo,
-            branch: config.masterBranch,
-            source: firstMasterComponent.template,
-            repoForUpdates: config.gitRepo,
-            branchForUpdates: config.branchName,
-            applyDefaultAddons: false,
+        const masterComponents = await weblate.getComponentsInCategory({
+            categoryId: masterCategory.id,
         });
 
+        const firstMasterComponent = masterComponents[0];
+
         await Promise.all(
-            otherMasterComponents.map(component =>
+            masterComponents.map(component =>
                 weblate.createComponent({
                     name: `${component.name}__${config.pullRequestNumber}`,
                     fileMask: component.filemask,
                     categoryId,
                     categorySlug,
-                    repo: `weblate://${config.project}/${categorySlug}/${firstCopiedComponent.slug}`,
+                    repo: `weblate://${config.project}/${masterCategory.slug}/${firstMasterComponent.slug}`,
+                    branch: config.masterBranch,
                     source: component.template,
+                    repoForUpdates: config.gitRepo,
+                    branchForUpdates: config.branchName,
                     applyDefaultAddons: false,
                 }),
             ),

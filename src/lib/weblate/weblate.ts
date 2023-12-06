@@ -369,4 +369,22 @@ export class Weblate {
             `/api/components/${this.project}/${componentName}/repository/`,
         );
     }
+
+    async isComponentLocked({
+        name,
+        categorySlug,
+    }: {
+        name: string;
+        categorySlug?: string;
+    }) {
+        const componentName = encodeURIComponent(
+            categorySlug ? `${categorySlug}%2F${name}` : name,
+        );
+
+        return (
+            await this.client.get<{locked: boolean}>(
+                `/api/components/${this.project}/${componentName}/lock/`,
+            )
+        ).locked;
+    }
 }
