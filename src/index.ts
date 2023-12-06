@@ -50,7 +50,6 @@ async function run() {
                     categoryId,
                     categorySlug,
                     repo: `weblate://${config.project}/${masterCategory.slug}/${firstMasterComponent.slug}`,
-                    branch: config.masterBranch,
                     source: component.template,
                     applyDefaultAddons: false,
                 }),
