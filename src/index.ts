@@ -52,8 +52,6 @@ async function run() {
                     repo: `weblate://${config.project}/${masterCategory.slug}/${firstMasterComponent.slug}`,
                     branch: config.masterBranch,
                     source: component.template,
-                    repoForUpdates: config.gitRepo,
-                    branchForUpdates: config.branchName,
                     applyDefaultAddons: false,
                 }),
             ),
