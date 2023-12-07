@@ -36336,7 +36336,8 @@ var Weblate = class {
           categorySlug,
           repo,
           branch,
-          branchForUpdates
+          branchForUpdates,
+          fileMask
         });
         if (applyDefaultAddons) {
           await this.applyDefaultAddonsToComponent({
@@ -36404,7 +36405,8 @@ var Weblate = class {
     repo,
     branch,
     repoForUpdates,
-    branchForUpdates
+    branchForUpdates,
+    fileMask
   }) {
     const componentName = encodeURIComponent(
       categorySlug ? `${categorySlug}%2F${name}` : name
@@ -36413,6 +36415,10 @@ var Weblate = class {
       return await this.client.put(
         `/api/components/${this.project}/${componentName}/`,
         {
+          name,
+          slug: name,
+          filemask: fileMask,
+          file_format: this.fileFormat,
           repo,
           push: repoForUpdates,
           push_branch: repoForUpdates ? branchForUpdates || branch : void 0,
