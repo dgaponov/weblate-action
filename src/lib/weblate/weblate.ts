@@ -140,6 +140,7 @@ export class Weblate {
                     repo,
                     branch,
                     branchForUpdates,
+                    fileMask,
                 });
 
                 if (applyDefaultAddons) {
@@ -224,6 +225,7 @@ export class Weblate {
         branch,
         repoForUpdates,
         branchForUpdates,
+        fileMask,
     }: {
         name: string;
         categorySlug?: string;
@@ -231,6 +233,7 @@ export class Weblate {
         branch?: string;
         repoForUpdates?: string;
         branchForUpdates?: string;
+        fileMask?: string;
     }) {
         const componentName = encodeURIComponent(
             categorySlug ? `${categorySlug}%2F${name}` : name,
@@ -240,6 +243,10 @@ export class Weblate {
             return await this.client.put<Component>(
                 `/api/components/${this.project}/${componentName}/`,
                 {
+                    name,
+                    slug: name,
+                    filemask: fileMask,
+                    file_format: this.fileFormat,
                     repo,
                     push: repoForUpdates,
                     push_branch: repoForUpdates
