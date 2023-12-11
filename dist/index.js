@@ -38577,6 +38577,24 @@ var syncMaster = async ({ config, weblate }) => {
     slug: categorySlug,
     wasRecentlyCreated: categoryWasRecentlyCreated
   } = await weblate.createCategoryForBranch(config.branchName);
+  if (!categoryWasRecentlyCreated) {
+    const weblateComponents2 = await weblate.getComponentsInCategory({
+      categoryId
+    });
+    const mainComponent = weblateComponents2.find(
+      ({ repo }) => !repo.startsWith("weblate://")
+    );
+    if (mainComponent) {
+      await weblate.pullComponentRemoteChanges({
+        name: mainComponent.name,
+        categorySlug
+      });
+      await weblate.waitComponentsTasks({
+        componentNames: weblateComponents2.map(({ name }) => name),
+        categorySlug
+      });
+    }
+  }
   const componentsInCode = await resolveComponents(config.keysetsPath);
   const [firstComponent, ...otherComponents] = componentsInCode;
   const firstWeblateComponent = await weblate.createComponent({
@@ -38610,7 +38628,7 @@ var syncMaster = async ({ config, weblate }) => {
     firstWeblateComponent,
     ...otherWeblateComponents
   ];
-  await weblate.waitComponentsLock({
+  await weblate.waitComponentsTasks({
     componentNames: weblateComponents.map(({ name }) => name),
     categorySlug
   });

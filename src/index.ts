@@ -86,6 +86,25 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
         wasRecentlyCreated: categoryWasRecentlyCreated,
     } = await weblate.createCategoryForBranch(config.branchName);
 
+    if (!categoryWasRecentlyCreated) {
+        const weblateComponents = await weblate.getComponentsInCategory({
+            categoryId,
+        });
+        const mainComponent = weblateComponents.find(
+            ({repo}) => !repo.startsWith('weblate://'),
+        );
+        if (mainComponent) {
+            await weblate.pullComponentRemoteChanges({
+                name: mainComponent.name,
+                categorySlug,
+            });
+            await weblate.waitComponentsTasks({
+                componentNames: weblateComponents.map(({name}) => name),
+                categorySlug,
+            });
+        }
+    }
+
     // Resolve components from file structure in master branch
     const componentsInCode = await resolveComponents(config.keysetsPath);
     const [firstComponent, ...otherComponents] = componentsInCode;
@@ -129,7 +148,7 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
         ...otherWeblateComponents,
     ];
 
-    await weblate.waitComponentsLock({
+    await weblate.waitComponentsTasks({
         componentNames: weblateComponents.map(({name}) => name),
         categorySlug,
     });
