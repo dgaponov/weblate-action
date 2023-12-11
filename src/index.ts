@@ -1,7 +1,8 @@
 import {ActionMode, Configuration, getConfiguration} from './config';
 import {Weblate} from './lib/weblate';
-import {resolveComponents} from './utils';
+import {ComponentInCode, resolveComponents} from './utils';
 import {setFailed} from '@actions/core';
+import partition from 'lodash/partition';
 import {context, getOctokit} from '@actions/github';
 
 type HandlerArgs = {
@@ -10,6 +11,72 @@ type HandlerArgs = {
 };
 
 type Handler = (args: HandlerArgs) => Promise<void>;
+
+const removeMissingComponents = async ({
+    config,
+    weblate,
+    categoryId,
+    categorySlug,
+    componentsInCode,
+}: {
+    config: Configuration;
+    weblate: Weblate;
+    categoryId: string;
+    categorySlug: string;
+    componentsInCode: ComponentInCode[];
+}) => {
+    const weblateComponents = await weblate.getComponentsInCategory({
+        categoryId,
+    });
+
+    // Removing components that don't exist in the code
+    const [componentsToRemove, aliveComponents] = partition(
+        weblateComponents,
+        ({name}) =>
+            !componentsInCode.find(
+                component => component.name === name.split('__')[0],
+            ),
+    );
+
+    if (componentsToRemove.length) {
+        const componentsWithoutLinking = componentsToRemove.filter(
+            ({repo}) => !repo.startsWith('weblate://'),
+        );
+
+        // Set component as the main and linking with others
+        if (componentsWithoutLinking.length && aliveComponents.length) {
+            const [mainComponent, ...componentsToLinking] = aliveComponents;
+
+            await weblate.updateComponent({
+                name: mainComponent.name,
+                categorySlug,
+                repo: config.gitRepo,
+                branch: config.branchName,
+                fileMask: mainComponent.filemask,
+                repoForUpdates: config.gitRepo,
+                branchForUpdates: config.branchName,
+            });
+
+            const requests = componentsToLinking.map(component =>
+                weblate.updateComponent({
+                    name: component.name,
+                    categorySlug,
+                    repo: `weblate://${config.project}/${categorySlug}/${mainComponent.slug}`,
+                    fileMask: component.filemask,
+                }),
+            );
+
+            await Promise.all(requests);
+        }
+
+        // Remove components
+        const requests = componentsToRemove.map(({name}) =>
+            weblate.removeComponent({name, categorySlug}),
+        );
+
+        await Promise.all(requests);
+    }
+};
 
 const syncMaster = async ({config, weblate}: HandlerArgs) => {
     // Create category for master branch
@@ -20,9 +87,8 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
     } = await weblate.createCategoryForBranch(config.branchName);
 
     // Resolve components from file structure in master branch
-    const [firstComponent, ...otherComponents] = await resolveComponents(
-        config.keysetsPath,
-    );
+    const componentsInCode = await resolveComponents(config.keysetsPath);
+    const [firstComponent, ...otherComponents] = componentsInCode;
 
     // Creating first component for master branch
     const firstWeblateComponent = await weblate.createComponent({
@@ -43,7 +109,6 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
             fileMask: component.fileMask,
             categoryId,
             categorySlug,
-            // TODO: think about what will happen if the firstWeblateComponent is removed?
             repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
             source: component.source,
         }),
@@ -67,6 +132,14 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
     await weblate.waitComponentsLock({
         componentNames: weblateComponents.map(({name}) => name),
         categorySlug,
+    });
+
+    await removeMissingComponents({
+        config,
+        weblate,
+        categoryId,
+        categorySlug,
+        componentsInCode,
     });
 };
 
@@ -106,7 +179,6 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
                     fileMask: component.filemask,
                     categoryId,
                     categorySlug,
-                    // TODO: think about what will happen if the component is removed from the master?
                     repo: `weblate://${config.project}/${masterCategory.slug}/${firstMasterComponent.slug}`,
                     source: component.template,
                     applyDefaultAddons: false,
@@ -122,9 +194,8 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
     }
 
     // Resolve components from file structure in feature branch
-    const [firstComponent, ...otherComponents] = await resolveComponents(
-        config.keysetsPath,
-    );
+    const componentsInCode = await resolveComponents(config.keysetsPath);
+    const [firstComponent, ...otherComponents] = componentsInCode;
 
     // Creating first component for feature branch
     const firstWeblateComponent = await weblate.createComponent({
@@ -146,7 +217,6 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
             fileMask: component.fileMask,
             categoryId,
             categorySlug,
-            // TODO: think about what will happen if the firstWeblateComponent is removed?
             repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
             source: component.source,
             updateIfExist: categoryWasRecentlyCreated,
@@ -172,6 +242,14 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
     await weblate.waitComponentsLock({
         componentNames: weblateComponents.map(({name}) => name),
         categorySlug,
+    });
+
+    await removeMissingComponents({
+        config,
+        weblate,
+        categoryId,
+        categorySlug,
+        componentsInCode,
     });
 
     const componentsStats = await Promise.all(
@@ -272,6 +350,9 @@ const modeToHandler: Record<ActionMode, Handler> = {
 
 async function run() {
     const config = getConfiguration();
+
+    console.log('Config:');
+    console.log(JSON.stringify(config, null, 4));
 
     const weblate = new Weblate({
         token: config.token,

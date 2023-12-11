@@ -263,6 +263,22 @@ export class Weblate {
         }
     }
 
+    removeComponent({
+        name,
+        categorySlug,
+    }: {
+        name: string;
+        categorySlug?: string;
+    }) {
+        const componentName = encodeURIComponent(
+            categorySlug ? `${categorySlug}%2F${name}` : name,
+        );
+
+        return this.client.delete(
+            `/api/components/${this.project}/${componentName}/`,
+        );
+    }
+
     async getComponentsInCategory({categoryId}: {categoryId: string}) {
         const components: Component[] = [];
         let page = 1;

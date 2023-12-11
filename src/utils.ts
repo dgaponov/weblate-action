@@ -4,7 +4,15 @@ import path from 'path';
 export const sleep = (time: number) =>
     new Promise(resolve => setTimeout(resolve, time));
 
-export const resolveComponents = async (keysetsPath: string) => {
+export type ComponentInCode = {
+    name: string;
+    source: string;
+    fileMask: string;
+};
+
+export const resolveComponents = async (
+    keysetsPath: string,
+): Promise<ComponentInCode[]> => {
     const dirents = await fs.readdir(path.resolve(process.cwd(), keysetsPath), {
         withFileTypes: true,
     });
