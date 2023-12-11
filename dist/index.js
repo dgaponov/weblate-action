@@ -33211,6 +33211,7 @@ function getBranchName() {
   return import_github.context.ref.replace(/refs\/heads\/(.*)/, "$1");
 }
 function getConfiguration() {
+  console.log(JSON.stringify(import_github.context.payload, null, 4));
   if (!import_github.context.payload.pull_request) {
     throw Error("Weblate-action works only with pull requests");
   }
