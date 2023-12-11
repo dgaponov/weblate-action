@@ -406,6 +406,8 @@ export class Weblate {
             return true;
         }
 
+        console.log(component.task_url);
+
         const response = await this.client.get<{completed: boolean}>(
             `/api/tasks/${component.task_url}/`,
         );

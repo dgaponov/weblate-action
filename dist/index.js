@@ -38492,6 +38492,7 @@ var Weblate = class {
     if (!component?.task_url) {
       return true;
     }
+    console.log(component.task_url);
     const response = await this.client.get(
       `/api/tasks/${component.task_url}/`
     );
