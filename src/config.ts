@@ -23,6 +23,8 @@ function getBranchName(): string {
 }
 
 export function getConfiguration(): Configuration {
+    console.log(JSON.stringify(context.payload, null, 4));
+
     if (!context.payload.pull_request) {
         throw Error('Weblate-action works only with pull requests');
     }
