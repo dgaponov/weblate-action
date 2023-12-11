@@ -402,15 +402,17 @@ export class Weblate {
     }) {
         const component = await this.findComponent({name, categorySlug});
 
-        if (!component || !component.task_url) {
+        if (!component?.task_url) {
             return true;
         }
 
-        return (
-            await this.client.get<{completed: boolean}>(
-                `/api/tasks/${component.task_url}/`,
-            )
-        ).completed;
+        const response = await this.client.get<{completed: boolean}>(
+            `/api/tasks/${component.task_url}/`,
+        );
+
+        console.log(response);
+
+        return response.completed;
     }
 
     async waitComponentsTasks({

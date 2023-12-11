@@ -38489,12 +38489,14 @@ var Weblate = class {
     categorySlug
   }) {
     const component = await this.findComponent({ name, categorySlug });
-    if (!component || !component.task_url) {
+    if (!component?.task_url) {
       return true;
     }
-    return (await this.client.get(
+    const response = await this.client.get(
       `/api/tasks/${component.task_url}/`
-    )).completed;
+    );
+    console.log(response);
+    return response.completed;
   }
   async waitComponentsTasks({
     componentNames,
