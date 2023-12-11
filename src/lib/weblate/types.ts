@@ -23,6 +23,7 @@ export type Component = {
     repo: string;
     template: string;
     category?: string;
+    task_url?: string;
     wasRecentlyCreated?: boolean;
 };
 

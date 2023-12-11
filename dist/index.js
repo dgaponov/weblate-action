@@ -38484,30 +38484,31 @@ var Weblate = class {
       `/api/components/${this.project}/${componentName}/repository/`
     );
   }
-  async isComponentLocked({
+  async isComponentTaskCompleted({
     name,
     categorySlug
   }) {
-    const componentName = encodeURIComponent(
-      categorySlug ? `${categorySlug}%2F${name}` : name
-    );
+    const component = await this.findComponent({ name, categorySlug });
+    if (!component || !component.task_url) {
+      return true;
+    }
     return (await this.client.get(
-      `/api/components/${this.project}/${componentName}/lock/`
-    )).locked;
+      `/api/tasks/${component.task_url}/`
+    )).completed;
   }
-  async waitComponentsLock({
+  async waitComponentsTasks({
     componentNames,
     categorySlug
   }) {
     const requests = componentNames.map(
-      (name) => this.isComponentLocked({ name, categorySlug })
+      (name) => this.isComponentTaskCompleted({ name, categorySlug })
     );
     const maxTries = 20;
     const sleepTime = 1e4;
     let tries = 0;
     while (tries < maxTries) {
       const locks = await Promise.all(requests);
-      if (!locks.some(Boolean)) {
+      if (locks.every(Boolean)) {
         return;
       }
       tries++;
@@ -38655,7 +38656,7 @@ var validatePullRequest = async ({ config, weblate }) => {
         })
       )
     );
-    await weblate.waitComponentsLock({
+    await weblate.waitComponentsTasks({
       componentNames: createdComponents.map(({ name }) => name),
       categorySlug
     });
@@ -38695,7 +38696,7 @@ var validatePullRequest = async ({ config, weblate }) => {
       categorySlug
     });
   }
-  await weblate.waitComponentsLock({
+  await weblate.waitComponentsTasks({
     componentNames: weblateComponents.map(({ name }) => name),
     categorySlug
   });

@@ -187,7 +187,7 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
         );
 
         // Wait repository update
-        await weblate.waitComponentsLock({
+        await weblate.waitComponentsTasks({
             componentNames: createdComponents.map(({name}) => name),
             categorySlug,
         });
@@ -239,7 +239,7 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
     }
 
     // Wait repository update
-    await weblate.waitComponentsLock({
+    await weblate.waitComponentsTasks({
         componentNames: weblateComponents.map(({name}) => name),
         categorySlug,
     });

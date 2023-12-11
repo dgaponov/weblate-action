@@ -393,25 +393,27 @@ export class Weblate {
         );
     }
 
-    async isComponentLocked({
+    async isComponentTaskCompleted({
         name,
         categorySlug,
     }: {
         name: string;
         categorySlug?: string;
     }) {
-        const componentName = encodeURIComponent(
-            categorySlug ? `${categorySlug}%2F${name}` : name,
-        );
+        const component = await this.findComponent({name, categorySlug});
+
+        if (!component || !component.task_url) {
+            return true;
+        }
 
         return (
-            await this.client.get<{locked: boolean}>(
-                `/api/components/${this.project}/${componentName}/lock/`,
+            await this.client.get<{completed: boolean}>(
+                `/api/tasks/${component.task_url}/`,
             )
-        ).locked;
+        ).completed;
     }
 
-    async waitComponentsLock({
+    async waitComponentsTasks({
         componentNames,
         categorySlug,
     }: {
@@ -419,7 +421,7 @@ export class Weblate {
         categorySlug?: string;
     }) {
         const requests = componentNames.map(name =>
-            this.isComponentLocked({name, categorySlug}),
+            this.isComponentTaskCompleted({name, categorySlug}),
         );
 
         const maxTries = 20;
@@ -429,7 +431,7 @@ export class Weblate {
         while (tries < maxTries) {
             const locks = await Promise.all(requests);
 
-            if (!locks.some(Boolean)) {
+            if (locks.every(Boolean)) {
                 return;
             }
 
