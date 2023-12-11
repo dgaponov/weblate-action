@@ -1,19 +1,76 @@
-import {getConfiguration} from './config';
+import {ActionMode, Configuration, getConfiguration} from './config';
 import {Weblate} from './lib/weblate';
 import {resolveComponents} from './utils';
 import {setFailed} from '@actions/core';
 import {context, getOctokit} from '@actions/github';
 
-async function run() {
-    const config = getConfiguration();
+type HandlerArgs = {
+    config: Configuration;
+    weblate: Weblate;
+};
 
-    const weblate = new Weblate({
-        token: config.token,
-        serverUrl: config.serverUrl,
-        project: config.project,
-        fileFormat: config.fileFormat,
+type Handler = (args: HandlerArgs) => Promise<void>;
+
+const syncMaster = async ({config, weblate}: HandlerArgs) => {
+    // Create category for master branch
+    const {
+        id: categoryId,
+        slug: categorySlug,
+        wasRecentlyCreated: categoryWasRecentlyCreated,
+    } = await weblate.createCategoryForBranch(config.branchName);
+
+    // Resolve components from file structure in master branch
+    const [firstComponent, ...otherComponents] = await resolveComponents(
+        config.keysetsPath,
+    );
+
+    // Creating first component for master branch
+    const firstWeblateComponent = await weblate.createComponent({
+        name: firstComponent.name,
+        fileMask: firstComponent.fileMask,
+        categoryId,
+        categorySlug,
+        repo: config.gitRepo,
+        branch: config.branchName,
+        source: firstComponent.source,
+        repoForUpdates: config.gitRepo,
     });
 
+    // Creating other components with a link to the first component
+    const createComponentsPromises = otherComponents.map(component =>
+        weblate.createComponent({
+            name: component.name,
+            fileMask: component.fileMask,
+            categoryId,
+            categorySlug,
+            // TODO: think about what will happen if the firstWeblateComponent is removed?
+            repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
+            source: component.source,
+        }),
+    );
+
+    const otherWeblateComponents = await Promise.all(createComponentsPromises);
+
+    // Pulling changes to weblate from remote repository
+    if (!categoryWasRecentlyCreated) {
+        await weblate.pullComponentRemoteChanges({
+            name: firstWeblateComponent.name,
+            categorySlug,
+        });
+    }
+
+    const weblateComponents = [
+        firstWeblateComponent,
+        ...otherWeblateComponents,
+    ];
+
+    await weblate.waitComponentsLock({
+        componentNames: weblateComponents.map(({name}) => name),
+        categorySlug,
+    });
+};
+
+const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
     const octokit = getOctokit(config.githubToken);
 
     // Create category for feature branch
@@ -144,7 +201,7 @@ async function run() {
 
         await octokit.rest.issues.createComment({
             ...context.repo,
-            issue_number: config.pullRequestNumber,
+            issue_number: config.pullRequestNumber as number,
             body: errorMessage,
         });
 
@@ -165,7 +222,7 @@ async function run() {
 
         await octokit.rest.issues.createComment({
             ...context.repo,
-            issue_number: config.pullRequestNumber,
+            issue_number: config.pullRequestNumber as number,
             body: errorMessage,
         });
 
@@ -180,7 +237,7 @@ async function run() {
 
         await octokit.rest.issues.createComment({
             ...context.repo,
-            issue_number: config.pullRequestNumber,
+            issue_number: config.pullRequestNumber as number,
             body: errorMessage,
         });
 
@@ -199,13 +256,34 @@ async function run() {
 
         await octokit.rest.issues.createComment({
             ...context.repo,
-            issue_number: config.pullRequestNumber,
+            issue_number: config.pullRequestNumber as number,
             body: errorMessage,
         });
 
         setFailed(errorMessage);
         return;
     }
+};
+
+const modeToHandler: Record<ActionMode, Handler> = {
+    [ActionMode.SYNC_MASTER]: syncMaster,
+    [ActionMode.VALIDATE_PULL_REQUEST]: validatePullRequest,
+};
+
+async function run() {
+    const config = getConfiguration();
+
+    const weblate = new Weblate({
+        token: config.token,
+        serverUrl: config.serverUrl,
+        project: config.project,
+        fileFormat: config.fileFormat,
+    });
+
+    await modeToHandler[config.mode]({
+        config,
+        weblate,
+    });
 }
 
 run();

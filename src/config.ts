@@ -1,18 +1,24 @@
 import {getInput} from '@actions/core';
 import {context} from '@actions/github';
 
-export interface Configuration {
+export enum ActionMode {
+    VALIDATE_PULL_REQUEST = 'VALIDATE_PULL_REQUEST',
+    SYNC_MASTER = 'SYNC_MASTER',
+}
+
+export type Configuration = {
+    mode: ActionMode;
     serverUrl: string;
     token: string;
     project: string;
     branchName: string;
     fileFormat: string;
     gitRepo: string;
-    pullRequestNumber: number;
     keysetsPath: string;
     masterBranch: string;
     githubToken: string;
-}
+    pullRequestNumber?: number;
+};
 
 function getBranchName(): string {
     if (context.payload && context.payload.pull_request) {
@@ -23,26 +29,46 @@ function getBranchName(): string {
 }
 
 export function getConfiguration(): Configuration {
-    console.log(JSON.stringify(context.payload, null, 4));
+    const mode = context.payload.pull_request
+        ? ActionMode.VALIDATE_PULL_REQUEST
+        : ActionMode.SYNC_MASTER;
 
-    if (!context.payload.pull_request) {
-        throw Error('Weblate-action works only with pull requests');
-    }
+    const masterBranch = getInput('MASTER_BRANCH');
+    const branchName = getBranchName();
 
-    if (!context.payload.pull_request.head?.repo?.html_url) {
-        throw Error('Repository url not found');
+    let gitRepo: string;
+
+    if (mode === 'VALIDATE_PULL_REQUEST') {
+        if (!context.payload.pull_request?.head?.repo?.html_url) {
+            throw Error('Repository url for pull request not found');
+        }
+
+        gitRepo = context.payload.pull_request.head.repo.html_url;
+    } else {
+        if (!context.payload.repository?.html_url) {
+            throw Error('Repository url for master branch not found');
+        }
+
+        if (branchName !== masterBranch) {
+            throw Error(
+                `The branch '${branchName}' doesn't match the master branch '${masterBranch}'`,
+            );
+        }
+
+        gitRepo = context.payload.repository.html_url;
     }
 
     return {
+        mode,
         serverUrl: getInput('SERVER_URL'),
         token: getInput('TOKEN'),
         project: getInput('PROJECT'),
-        branchName: getBranchName(),
+        branchName,
         fileFormat: getInput('FILE_FORMAT'),
-        gitRepo: context.payload.pull_request.head.repo.html_url as string,
-        pullRequestNumber: context.payload.pull_request.number,
+        gitRepo,
+        pullRequestNumber: context.payload.pull_request?.number,
         keysetsPath: getInput('KEYSETS_PATH'),
-        masterBranch: getInput('MASTER_BRANCH'),
+        masterBranch,
         githubToken: getInput('GITHUB_TOKEN'),
     };
 }

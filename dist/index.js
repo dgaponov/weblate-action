@@ -33211,23 +33211,37 @@ function getBranchName() {
   return import_github.context.ref.replace(/refs\/heads\/(.*)/, "$1");
 }
 function getConfiguration() {
-  console.log(JSON.stringify(import_github.context.payload, null, 4));
-  if (!import_github.context.payload.pull_request) {
-    throw Error("Weblate-action works only with pull requests");
-  }
-  if (!import_github.context.payload.pull_request.head?.repo?.html_url) {
-    throw Error("Repository url not found");
+  const mode = import_github.context.payload.pull_request ? "VALIDATE_PULL_REQUEST" /* VALIDATE_PULL_REQUEST */ : "SYNC_MASTER" /* SYNC_MASTER */;
+  const masterBranch = (0, import_core.getInput)("MASTER_BRANCH");
+  const branchName = getBranchName();
+  let gitRepo;
+  if (mode === "VALIDATE_PULL_REQUEST") {
+    if (!import_github.context.payload.pull_request?.head?.repo?.html_url) {
+      throw Error("Repository url for pull request not found");
+    }
+    gitRepo = import_github.context.payload.pull_request.head.repo.html_url;
+  } else {
+    if (!import_github.context.payload.repository?.html_url) {
+      throw Error("Repository url for master branch not found");
+    }
+    if (branchName !== masterBranch) {
+      throw Error(
+        `The branch '${branchName}' doesn't match the master branch '${masterBranch}'`
+      );
+    }
+    gitRepo = import_github.context.payload.repository.html_url;
   }
   return {
+    mode,
     serverUrl: (0, import_core.getInput)("SERVER_URL"),
     token: (0, import_core.getInput)("TOKEN"),
     project: (0, import_core.getInput)("PROJECT"),
-    branchName: getBranchName(),
+    branchName,
     fileFormat: (0, import_core.getInput)("FILE_FORMAT"),
-    gitRepo: import_github.context.payload.pull_request.head.repo.html_url,
-    pullRequestNumber: import_github.context.payload.pull_request.number,
+    gitRepo,
+    pullRequestNumber: import_github.context.payload.pull_request?.number,
     keysetsPath: (0, import_core.getInput)("KEYSETS_PATH"),
-    masterBranch: (0, import_core.getInput)("MASTER_BRANCH"),
+    masterBranch,
     githubToken: (0, import_core.getInput)("GITHUB_TOKEN")
   };
 }
@@ -36565,14 +36579,53 @@ var Weblate = class {
 // src/index.ts
 var import_core2 = __toESM(require_core());
 var import_github2 = __toESM(require_github());
-async function run() {
-  const config = getConfiguration();
-  const weblate = new Weblate({
-    token: config.token,
-    serverUrl: config.serverUrl,
-    project: config.project,
-    fileFormat: config.fileFormat
+var syncMaster = async ({ config, weblate }) => {
+  const {
+    id: categoryId,
+    slug: categorySlug,
+    wasRecentlyCreated: categoryWasRecentlyCreated
+  } = await weblate.createCategoryForBranch(config.branchName);
+  const [firstComponent, ...otherComponents] = await resolveComponents(
+    config.keysetsPath
+  );
+  const firstWeblateComponent = await weblate.createComponent({
+    name: firstComponent.name,
+    fileMask: firstComponent.fileMask,
+    categoryId,
+    categorySlug,
+    repo: config.gitRepo,
+    branch: config.branchName,
+    source: firstComponent.source,
+    repoForUpdates: config.gitRepo
   });
+  const createComponentsPromises = otherComponents.map(
+    (component) => weblate.createComponent({
+      name: component.name,
+      fileMask: component.fileMask,
+      categoryId,
+      categorySlug,
+      // TODO: think about what will happen if the firstWeblateComponent is removed?
+      repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
+      source: component.source
+    })
+  );
+  const otherWeblateComponents = await Promise.all(createComponentsPromises);
+  if (!categoryWasRecentlyCreated) {
+    await weblate.pullComponentRemoteChanges({
+      name: firstWeblateComponent.name,
+      categorySlug
+    });
+  }
+  const weblateComponents = [
+    firstWeblateComponent,
+    ...otherWeblateComponents
+  ];
+  await weblate.waitComponentsLock({
+    componentNames: weblateComponents.map(({ name }) => name),
+    categorySlug
+  });
+};
+var validatePullRequest = async ({ config, weblate }) => {
   const octokit = (0, import_github2.getOctokit)(config.githubToken);
   const {
     id: categoryId,
@@ -36725,6 +36778,23 @@ async function run() {
     (0, import_core2.setFailed)(errorMessage);
     return;
   }
+};
+var modeToHandler = {
+  ["SYNC_MASTER" /* SYNC_MASTER */]: syncMaster,
+  ["VALIDATE_PULL_REQUEST" /* VALIDATE_PULL_REQUEST */]: validatePullRequest
+};
+async function run() {
+  const config = getConfiguration();
+  const weblate = new Weblate({
+    token: config.token,
+    serverUrl: config.serverUrl,
+    project: config.project,
+    fileFormat: config.fileFormat
+  });
+  await modeToHandler[config.mode]({
+    config,
+    weblate
+  });
 }
 run();
 /*! Bundled license information:
