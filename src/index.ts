@@ -1,6 +1,6 @@
 import {getConfiguration} from './config';
 import {Weblate} from './lib/weblate';
-import {resolveComponents, sleep} from './utils';
+import {resolveComponents} from './utils';
 import {setFailed} from '@actions/core';
 import {context, getOctokit} from '@actions/github';
 
@@ -42,13 +42,14 @@ async function run() {
 
         const firstMasterComponent = masterComponents[0];
 
-        await Promise.all(
+        const createdComponents = await Promise.all(
             masterComponents.map(component =>
                 weblate.createComponent({
                     name: `${component.name}__${config.pullRequestNumber}`,
                     fileMask: component.filemask,
                     categoryId,
                     categorySlug,
+                    // TODO: think about what will happen if the component is removed from the master?
                     repo: `weblate://${config.project}/${masterCategory.slug}/${firstMasterComponent.slug}`,
                     source: component.template,
                     applyDefaultAddons: false,
@@ -57,8 +58,10 @@ async function run() {
         );
 
         // Wait repository update
-        // TODO replace sleep to checking components statuses
-        await sleep(60000);
+        await weblate.waitComponentsLock({
+            componentNames: createdComponents.map(({name}) => name),
+            categorySlug,
+        });
     }
 
     // Resolve components from file structure in feature branch
@@ -86,6 +89,7 @@ async function run() {
             fileMask: component.fileMask,
             categoryId,
             categorySlug,
+            // TODO: think about what will happen if the firstWeblateComponent is removed?
             repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
             source: component.source,
             updateIfExist: categoryWasRecentlyCreated,
@@ -108,8 +112,10 @@ async function run() {
     }
 
     // Wait repository update
-    // TODO replace sleep to checking components statuses
-    await sleep(60000);
+    await weblate.waitComponentsLock({
+        componentNames: weblateComponents.map(({name}) => name),
+        categorySlug,
+    });
 
     const componentsStats = await Promise.all(
         weblateComponents.map(component =>

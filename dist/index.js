@@ -36243,6 +36243,21 @@ var normalizeResponse = (response) => {
 };
 var getSlugForBranch = (branchName) => (0, import_kebabCase.default)(branchName);
 
+// src/utils.ts
+var import_promises = __toESM(require("fs/promises"));
+var import_path = __toESM(require("path"));
+var sleep = (time) => new Promise((resolve) => setTimeout(resolve, time));
+var resolveComponents = async (keysetsPath) => {
+  const dirents = await import_promises.default.readdir(import_path.default.resolve(process.cwd(), keysetsPath), {
+    withFileTypes: true
+  });
+  return dirents.filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith(".")).map(({ name }) => ({
+    name,
+    source: import_path.default.join(keysetsPath, name, "en.json"),
+    fileMask: import_path.default.join(keysetsPath, name, "*.json")
+  }));
+};
+
 // src/lib/weblate/weblate.ts
 var DEFAULT_COMPONENT_ADDONS = [
   {
@@ -36522,21 +36537,28 @@ var Weblate = class {
       `/api/components/${this.project}/${componentName}/lock/`
     )).locked;
   }
-};
-
-// src/utils.ts
-var import_promises = __toESM(require("fs/promises"));
-var import_path = __toESM(require("path"));
-var sleep = (time) => new Promise((resolve) => setTimeout(resolve, time));
-var resolveComponents = async (keysetsPath) => {
-  const dirents = await import_promises.default.readdir(import_path.default.resolve(process.cwd(), keysetsPath), {
-    withFileTypes: true
-  });
-  return dirents.filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith(".")).map(({ name }) => ({
-    name,
-    source: import_path.default.join(keysetsPath, name, "en.json"),
-    fileMask: import_path.default.join(keysetsPath, name, "*.json")
-  }));
+  async waitComponentsLock({
+    componentNames,
+    categorySlug
+  }) {
+    const requests = componentNames.map(
+      (name) => this.isComponentLocked({ name, categorySlug })
+    );
+    const maxTries = 20;
+    const sleepTime = 1e4;
+    let tries = 0;
+    while (tries < maxTries) {
+      const locks = await Promise.all(requests);
+      if (!locks.some(Boolean)) {
+        return;
+      }
+      tries++;
+      await sleep(sleepTime);
+    }
+    throw new Error(
+      `Long wait for unlocking components in category '${categorySlug}'`
+    );
+  }
 };
 
 // src/index.ts
@@ -36570,20 +36592,24 @@ async function run() {
       categoryId: masterCategory.id
     });
     const firstMasterComponent = masterComponents[0];
-    await Promise.all(
+    const createdComponents = await Promise.all(
       masterComponents.map(
         (component) => weblate.createComponent({
           name: `${component.name}__${config.pullRequestNumber}`,
           fileMask: component.filemask,
           categoryId,
           categorySlug,
+          // TODO: think about what will happen if the component is removed from the master?
           repo: `weblate://${config.project}/${masterCategory.slug}/${firstMasterComponent.slug}`,
           source: component.template,
           applyDefaultAddons: false
         })
       )
     );
-    await sleep(6e4);
+    await weblate.waitComponentsLock({
+      componentNames: createdComponents.map(({ name }) => name),
+      categorySlug
+    });
   }
   const [firstComponent, ...otherComponents] = await resolveComponents(
     config.keysetsPath
@@ -36605,6 +36631,7 @@ async function run() {
       fileMask: component.fileMask,
       categoryId,
       categorySlug,
+      // TODO: think about what will happen if the firstWeblateComponent is removed?
       repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
       source: component.source,
       updateIfExist: categoryWasRecentlyCreated
@@ -36621,7 +36648,10 @@ async function run() {
       categorySlug
     });
   }
-  await sleep(6e4);
+  await weblate.waitComponentsLock({
+    componentNames: weblateComponents.map(({ name }) => name),
+    categorySlug
+  });
   const componentsStats = await Promise.all(
     weblateComponents.map(
       (component) => weblate.getComponentTranslationsStats({

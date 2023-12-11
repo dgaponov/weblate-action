@@ -8,7 +8,7 @@ import type {
     Paginated,
 } from './types';
 import {getSlugForBranch, normalizeResponse} from './normalizers';
-
+import {sleep} from '../../utils';
 declare module 'axios' {
     interface AxiosResponse<T = any> extends Promise<T> {}
 }
@@ -393,5 +393,36 @@ export class Weblate {
                 `/api/components/${this.project}/${componentName}/lock/`,
             )
         ).locked;
+    }
+
+    async waitComponentsLock({
+        componentNames,
+        categorySlug,
+    }: {
+        componentNames: string[];
+        categorySlug?: string;
+    }) {
+        const requests = componentNames.map(name =>
+            this.isComponentLocked({name, categorySlug}),
+        );
+
+        const maxTries = 20;
+        const sleepTime = 10000;
+        let tries = 0;
+
+        while (tries < maxTries) {
+            const locks = await Promise.all(requests);
+
+            if (!locks.some(Boolean)) {
+                return;
+            }
+
+            tries++;
+            await sleep(sleepTime);
+        }
+
+        throw new Error(
+            `Long wait for unlocking components in category '${categorySlug}'`,
+        );
     }
 }
