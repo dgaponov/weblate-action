@@ -406,15 +406,11 @@ export class Weblate {
             return true;
         }
 
-        console.log(component.task_url);
-
-        const response = await this.client.get<{completed: boolean}>(
-            `/api/tasks/${component.task_url}/`,
-        );
-
-        console.log(response);
-
-        return response.completed;
+        return (
+            await this.client.get<{completed: boolean}>(
+                `/api/tasks/${component.task_url}/`,
+            )
+        ).completed;
     }
 
     async waitComponentsTasks({
@@ -424,16 +420,16 @@ export class Weblate {
         componentNames: string[];
         categorySlug?: string;
     }) {
-        const requests = componentNames.map(name =>
-            this.isComponentTaskCompleted({name, categorySlug}),
-        );
-
         const maxTries = 20;
         const sleepTime = 10000;
         let tries = 0;
 
         while (tries < maxTries) {
-            const locks = await Promise.all(requests);
+            const locks = await Promise.all(
+                componentNames.map(name =>
+                    this.isComponentTaskCompleted({name, categorySlug}),
+                ),
+            );
 
             if (locks.every(Boolean)) {
                 return;

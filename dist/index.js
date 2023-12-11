@@ -38492,25 +38492,23 @@ var Weblate = class {
     if (!component?.task_url) {
       return true;
     }
-    console.log(component.task_url);
-    const response = await this.client.get(
+    return (await this.client.get(
       `/api/tasks/${component.task_url}/`
-    );
-    console.log(response);
-    return response.completed;
+    )).completed;
   }
   async waitComponentsTasks({
     componentNames,
     categorySlug
   }) {
-    const requests = componentNames.map(
-      (name) => this.isComponentTaskCompleted({ name, categorySlug })
-    );
     const maxTries = 20;
     const sleepTime = 1e4;
     let tries = 0;
     while (tries < maxTries) {
-      const locks = await Promise.all(requests);
+      const locks = await Promise.all(
+        componentNames.map(
+          (name) => this.isComponentTaskCompleted({ name, categorySlug })
+        )
+      );
       if (locks.every(Boolean)) {
         return;
       }
