@@ -38216,7 +38216,9 @@ var DEFAULT_COMPONENT_ADDONS = [
   {
     name: "weblate.flags.target_edit"
   },
-  { name: "weblate.flags.source_edit" }
+  { name: "weblate.flags.source_edit" },
+  { name: "weblate.flags.same_edit" },
+  { name: "weblate.gravity.custom" }
 ];
 var Weblate = class {
   serverUrl;
