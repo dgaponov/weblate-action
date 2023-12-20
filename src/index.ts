@@ -119,6 +119,7 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
         branch: config.branchName,
         source: firstComponent.source,
         repoForUpdates: config.gitRepo,
+        applyDefaultAddons: false,
     });
 
     // Creating other components with a link to the first component
@@ -130,6 +131,7 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
             categorySlug,
             repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
             source: component.source,
+            applyDefaultAddons: false,
         }),
     );
 
