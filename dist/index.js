@@ -38154,7 +38154,7 @@ var normalizeData = (value) => {
     return void 0;
   }
   if (typeof value === "string") {
-    return value.startsWith("http://weblate.example.com") ? getUrlLastPart(value) : value;
+    return value.startsWith("http") && value.includes("/api/") ? getUrlLastPart(value) : value;
   }
   if (typeof value === "object") {
     const normalizedObject = value;
@@ -38608,7 +38608,8 @@ var syncMaster = async ({ config, weblate }) => {
     repo: config.gitRepo,
     branch: config.branchName,
     source: firstComponent.source,
-    repoForUpdates: config.gitRepo
+    repoForUpdates: config.gitRepo,
+    applyDefaultAddons: false
   });
   const createComponentsPromises = otherComponents.map(
     (component) => weblate.createComponent({
@@ -38617,7 +38618,8 @@ var syncMaster = async ({ config, weblate }) => {
       categoryId,
       categorySlug,
       repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
-      source: component.source
+      source: component.source,
+      applyDefaultAddons: false
     })
   );
   const otherWeblateComponents = await Promise.all(createComponentsPromises);
