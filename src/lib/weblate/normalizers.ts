@@ -92,4 +92,4 @@ export const normalizeResponse = (response: AxiosResponse): AxiosResponse => {
     return normalizedResponse as unknown as AxiosResponse;
 };
 
-export const getSlugForBranch = (branchName: string) => kebabCase(branchName);
+export const slugify = (name: string) => kebabCase(name);

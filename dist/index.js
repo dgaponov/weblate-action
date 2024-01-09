@@ -38188,7 +38188,7 @@ var normalizeResponse = (response) => {
   }
   return normalizedResponse;
 };
-var getSlugForBranch = (branchName) => (0, import_kebabCase.default)(branchName);
+var slugify = (name) => (0, import_kebabCase.default)(name);
 
 // src/utils.ts
 var import_promises = __toESM(require("fs/promises"));
@@ -38220,6 +38220,15 @@ var DEFAULT_COMPONENT_ADDONS = [
   { name: "weblate.flags.same_edit" },
   { name: "weblate.gravity.custom" }
 ];
+var getComponentSlug = ({
+  name,
+  categorySlug
+}) => {
+  const slug = slugify(name);
+  return encodeURIComponent(
+    categorySlug ? `${categorySlug}%2F${slug}` : slug
+  );
+};
 var Weblate = class {
   serverUrl;
   project;
@@ -38252,7 +38261,7 @@ var Weblate = class {
       {
         project: `${this.serverUrl}/api/projects/${this.project}/`,
         name: branchName,
-        slug: getSlugForBranch(branchName)
+        slug: slugify(branchName)
       }
     );
     return {
@@ -38321,7 +38330,7 @@ var Weblate = class {
       `/api/projects/${this.project}/components/`,
       {
         name,
-        slug: name,
+        slug: slugify(name),
         source_language: { code: "en", name: "English" },
         file_format: this.fileFormat,
         filemask: fileMask,
@@ -38349,12 +38358,10 @@ var Weblate = class {
     name,
     categorySlug
   }) {
-    const componentName = encodeURIComponent(
-      categorySlug ? `${categorySlug}%2F${name}` : name
-    );
+    const componentSlug = getComponentSlug({ name, categorySlug });
     try {
       return await this.client.get(
-        `/api/components/${this.project}/${componentName}/`
+        `/api/components/${this.project}/${componentSlug}/`
       );
     } catch (error) {
       if (isAxiosError2(error) && error.response?.status === 404) {
@@ -38372,15 +38379,13 @@ var Weblate = class {
     branchForUpdates,
     fileMask
   }) {
-    const componentName = encodeURIComponent(
-      categorySlug ? `${categorySlug}%2F${name}` : name
-    );
+    const componentSlug = getComponentSlug({ name, categorySlug });
     try {
       return await this.client.put(
-        `/api/components/${this.project}/${componentName}/`,
+        `/api/components/${this.project}/${componentSlug}/`,
         {
           name,
-          slug: name,
+          slug: slugify(name),
           filemask: fileMask,
           file_format: this.fileFormat,
           repo,
@@ -38400,11 +38405,9 @@ var Weblate = class {
     name,
     categorySlug
   }) {
-    const componentName = encodeURIComponent(
-      categorySlug ? `${categorySlug}%2F${name}` : name
-    );
+    const componentSlug = getComponentSlug({ name, categorySlug });
     return this.client.delete(
-      `/api/components/${this.project}/${componentName}/`
+      `/api/components/${this.project}/${componentSlug}/`
     );
   }
   async getComponentsInCategory({ categoryId }) {
@@ -38432,11 +38435,9 @@ var Weblate = class {
     name,
     categorySlug
   }) {
-    const componentName = encodeURIComponent(
-      categorySlug ? `${categorySlug}%2F${name}` : name
-    );
+    const componentSlug = getComponentSlug({ name, categorySlug });
     return this.client.post(
-      `/api/components/${this.project}/${componentName}/repository/`,
+      `/api/components/${this.project}/${componentSlug}/repository/`,
       { operation: "pull" }
     );
   }
@@ -38444,23 +38445,19 @@ var Weblate = class {
     name,
     categorySlug
   }) {
-    const componentName = encodeURIComponent(
-      categorySlug ? `${categorySlug}%2F${name}` : name
-    );
+    const componentSlug = getComponentSlug({ name, categorySlug });
     return (await this.client.get(
-      `/api/components/${this.project}/${componentName}/statistics/`
+      `/api/components/${this.project}/${componentSlug}/statistics/`
     )).results;
   }
   async applyDefaultAddonsToComponent({
     name,
     categorySlug
   }) {
-    const componentName = encodeURIComponent(
-      categorySlug ? `${categorySlug}%2F${name}` : name
-    );
+    const componentSlug = getComponentSlug({ name, categorySlug });
     const promises = DEFAULT_COMPONENT_ADDONS.map(
       (addon) => this.client.post(
-        `/api/components/${this.project}/${componentName}/addons/`,
+        `/api/components/${this.project}/${componentSlug}/addons/`,
         { name: addon.name, configuration: addon.configuration }
       )
     );
@@ -38479,11 +38476,9 @@ var Weblate = class {
     name,
     categorySlug
   }) {
-    const componentName = encodeURIComponent(
-      categorySlug ? `${categorySlug}%2F${name}` : name
-    );
+    const componentSlug = getComponentSlug({ name, categorySlug });
     return this.client.get(
-      `/api/components/${this.project}/${componentName}/repository/`
+      `/api/components/${this.project}/${componentSlug}/repository/`
     );
   }
   async isComponentTaskCompleted({

@@ -7,7 +7,7 @@ import type {
     ComponentTranslationStats,
     Paginated,
 } from './types';
-import {getSlugForBranch, normalizeResponse} from './normalizers';
+import {normalizeResponse, slugify} from './normalizers';
 import {sleep} from '../../utils';
 declare module 'axios' {
     interface AxiosResponse<T = any> extends Promise<T> {}
@@ -27,6 +27,20 @@ const DEFAULT_COMPONENT_ADDONS = [
     {name: 'weblate.flags.same_edit'},
     {name: 'weblate.gravity.custom'},
 ];
+
+const getComponentSlug = ({
+    name,
+    categorySlug,
+}: {
+    name: string;
+    categorySlug?: string;
+}) => {
+    const slug = slugify(name);
+
+    return encodeURIComponent(
+        categorySlug ? `${categorySlug}%2F${slug}` : slug,
+    );
+};
 
 interface WeblateConstructorArg {
     serverUrl: string;
@@ -73,7 +87,7 @@ export class Weblate {
             {
                 project: `${this.serverUrl}/api/projects/${this.project}/`,
                 name: branchName,
-                slug: getSlugForBranch(branchName),
+                slug: slugify(branchName),
             },
         );
 
@@ -166,7 +180,7 @@ export class Weblate {
             `/api/projects/${this.project}/components/`,
             {
                 name,
-                slug: name,
+                slug: slugify(name),
                 source_language: {code: 'en', name: 'English'},
                 file_format: this.fileFormat,
                 filemask: fileMask,
@@ -204,13 +218,11 @@ export class Weblate {
         name: string;
         categorySlug?: string;
     }) {
-        const componentName = encodeURIComponent(
-            categorySlug ? `${categorySlug}%2F${name}` : name,
-        );
+        const componentSlug = getComponentSlug({name, categorySlug});
 
         try {
             return await this.client.get<Component>(
-                `/api/components/${this.project}/${componentName}/`,
+                `/api/components/${this.project}/${componentSlug}/`,
             );
         } catch (error) {
             if (isAxiosError(error) && error.response?.status === 404) {
@@ -237,16 +249,14 @@ export class Weblate {
         branchForUpdates?: string;
         fileMask?: string;
     }) {
-        const componentName = encodeURIComponent(
-            categorySlug ? `${categorySlug}%2F${name}` : name,
-        );
+        const componentSlug = getComponentSlug({name, categorySlug});
 
         try {
             return await this.client.put<Component>(
-                `/api/components/${this.project}/${componentName}/`,
+                `/api/components/${this.project}/${componentSlug}/`,
                 {
                     name,
-                    slug: name,
+                    slug: slugify(name),
                     filemask: fileMask,
                     file_format: this.fileFormat,
                     repo,
@@ -272,12 +282,10 @@ export class Weblate {
         name: string;
         categorySlug?: string;
     }) {
-        const componentName = encodeURIComponent(
-            categorySlug ? `${categorySlug}%2F${name}` : name,
-        );
+        const componentSlug = getComponentSlug({name, categorySlug});
 
         return this.client.delete(
-            `/api/components/${this.project}/${componentName}/`,
+            `/api/components/${this.project}/${componentSlug}/`,
         );
     }
 
@@ -314,12 +322,10 @@ export class Weblate {
         name: string;
         categorySlug?: string;
     }) {
-        const componentName = encodeURIComponent(
-            categorySlug ? `${categorySlug}%2F${name}` : name,
-        );
+        const componentSlug = getComponentSlug({name, categorySlug});
 
         return this.client.post(
-            `/api/components/${this.project}/${componentName}/repository/`,
+            `/api/components/${this.project}/${componentSlug}/repository/`,
             {operation: 'pull'},
         );
     }
@@ -331,13 +337,11 @@ export class Weblate {
         name: string;
         categorySlug?: string;
     }) {
-        const componentName = encodeURIComponent(
-            categorySlug ? `${categorySlug}%2F${name}` : name,
-        );
+        const componentSlug = getComponentSlug({name, categorySlug});
 
         return (
             await this.client.get<Paginated<ComponentTranslationStats>>(
-                `/api/components/${this.project}/${componentName}/statistics/`,
+                `/api/components/${this.project}/${componentSlug}/statistics/`,
             )
         ).results;
     }
@@ -349,13 +353,11 @@ export class Weblate {
         name: string;
         categorySlug?: string;
     }) {
-        const componentName = encodeURIComponent(
-            categorySlug ? `${categorySlug}%2F${name}` : name,
-        );
+        const componentSlug = getComponentSlug({name, categorySlug});
 
         const promises = DEFAULT_COMPONENT_ADDONS.map(addon =>
             this.client.post(
-                `/api/components/${this.project}/${componentName}/addons/`,
+                `/api/components/${this.project}/${componentSlug}/addons/`,
                 {name: addon.name, configuration: addon.configuration},
             ),
         );
@@ -386,12 +388,10 @@ export class Weblate {
         name: string;
         categorySlug?: string;
     }) {
-        const componentName = encodeURIComponent(
-            categorySlug ? `${categorySlug}%2F${name}` : name,
-        );
+        const componentSlug = getComponentSlug({name, categorySlug});
 
         return this.client.get<ComponentRepository>(
-            `/api/components/${this.project}/${componentName}/repository/`,
+            `/api/components/${this.project}/${componentSlug}/repository/`,
         );
     }
 
