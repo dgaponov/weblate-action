@@ -150,6 +150,13 @@ export class Weblate {
 
         if (component) {
             if (updateIfExist) {
+                if (applyDefaultAddons) {
+                    await this.applyDefaultAddonsToComponent({
+                        name,
+                        categorySlug,
+                    });
+                }
+
                 await this.updateComponent({
                     name,
                     categorySlug,
@@ -158,13 +165,6 @@ export class Weblate {
                     branchForUpdates,
                     fileMask,
                 });
-
-                if (applyDefaultAddons) {
-                    await this.applyDefaultAddonsToComponent({
-                        name,
-                        categorySlug,
-                    });
-                }
 
                 return {
                     ...component,

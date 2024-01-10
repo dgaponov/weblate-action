@@ -38304,6 +38304,12 @@ var Weblate = class {
     const component = await this.findComponent({ name, categorySlug });
     if (component) {
       if (updateIfExist) {
+        if (applyDefaultAddons) {
+          await this.applyDefaultAddonsToComponent({
+            name,
+            categorySlug
+          });
+        }
         await this.updateComponent({
           name,
           categorySlug,
@@ -38312,12 +38318,6 @@ var Weblate = class {
           branchForUpdates,
           fileMask
         });
-        if (applyDefaultAddons) {
-          await this.applyDefaultAddonsToComponent({
-            name,
-            categorySlug
-          });
-        }
         return {
           ...component,
           repo,
@@ -38738,13 +38738,17 @@ var validatePullRequest = async ({ config, weblate }) => {
   );
   const failedComponents = componentsStats.flat().filter((stats) => stats.translated_percent !== 100);
   if (failedComponents.length) {
-    const failedComponentsLinks = failedComponents.map((stat) => stat.url).join("\n");
+    const failedComponentsLinks = failedComponents.map((stat) => {
+      const name = stat.name.split("__")[0];
+      return `<a href="${stat.url}">${name} (${stat.code})</a>`;
+    }).join("<br>");
     const errorMessage = [
       "**i18n-check**",
-      "The following components have not been translated:",
-      `${failedComponentsLinks}
-`,
-      "Wait for the reviewers to check your changes in Weblate and try running github action again."
+      "<details>",
+      "<summary>The following components have not been translated</summary>",
+      `<p>${failedComponentsLinks}</p>`,
+      "</details>",
+      "\nWait for the reviewers to check your changes in Weblate and try running github action again."
     ].join("\n");
     await octokit.rest.issues.createComment({
       ...import_github2.context.repo,

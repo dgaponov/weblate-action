@@ -288,14 +288,19 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
 
     if (failedComponents.length) {
         const failedComponentsLinks = failedComponents
-            .map(stat => stat.url)
-            .join('\n');
+            .map(stat => {
+                const name = stat.name.split('__')[0];
+                return `<a href="${stat.url}">${name} (${stat.code})</a>`;
+            })
+            .join('<br>');
 
         const errorMessage = [
             '**i18n-check**',
-            'The following components have not been translated:',
-            `${failedComponentsLinks}\n`,
-            'Wait for the reviewers to check your changes in Weblate and try running github action again.',
+            '<details>',
+            '<summary>The following components have not been translated</summary>',
+            `<p>${failedComponentsLinks}</p>`,
+            '</details>',
+            '\nWait for the reviewers to check your changes in Weblate and try running github action again.',
         ].join('\n');
 
         await octokit.rest.issues.createComment({
