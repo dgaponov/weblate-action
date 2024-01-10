@@ -38252,7 +38252,7 @@ var Weblate = class {
         Authorization: `Token ${token}`
       },
       httpsAgent: new import_https2.default.Agent({ keepAlive: true }),
-      timeout: 6e4,
+      timeout: 3 * 60 * 1e3,
       maxContentLength: 500 * 1e3 * 1e3
     });
     this.client.interceptors.response.use(normalizeResponse);

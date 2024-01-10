@@ -72,7 +72,7 @@ export class Weblate {
                 Authorization: `Token ${token}`,
             },
             httpsAgent: new https.Agent({keepAlive: true}),
-            timeout: 60000,
+            timeout: 3 * 60 * 1000,
             maxContentLength: 500 * 1000 * 1000,
         });
 
