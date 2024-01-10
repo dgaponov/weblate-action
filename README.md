@@ -35,35 +35,35 @@ of your repository as repository secret called `WEBLATE_TOKEN`.
     name: i18n-check
 
     on:
-    push:
-        branches:
-        - main
-        paths:
-        - "src/i18n-keysets/**"
-    workflow_dispatch:
-    # pull_request_target is needed instead of just pull_request
-    # because secret is needed to sync with weblate
-    # Attention! Read more at https://nathandavison.com/blog/github-actions-and-the-threat-of-malicious-pull-requests
-    pull_request_target:
-        branches:
-        - main
-        paths:
-        - "src/i18n-keysets/**"
+        push:
+            branches:
+            - main
+            paths:
+            - "src/i18n-keysets/**"
+        workflow_dispatch:
+        # pull_request_target is needed instead of just pull_request
+        # because secret is needed to sync with weblate
+        # Attention! Read more at https://nathandavison.com/blog/github-actions-and-the-threat-of-malicious-pull-requests
+        pull_request_target:
+            branches:
+            - main
+            paths:
+            - "src/i18n-keysets/**"
 
     jobs:
-    i18n_check:
-        runs-on: ubuntu-latest
-        if: github.actor != 'WeblateGravity' # Ignore pull requests from bot
-        steps:
-        - uses: actions/checkout@v4
-            with:
-            ref: ${{ github.event.pull_request.head.sha }}
-
-        - name: Verifying changes with Weblate
-            uses: dgaponov/weblate-action@v1.17.0
-            with:
-                SERVER_URL: "http://SOME_WEBLATE_SERVER_URL" # Weblate server URL
-                TOKEN: ${{ secrets.WEBLATE_TOKEN }}
-                PROJECT: "project_slug"
-                GITHUB_TOKEN: ${{ secrets.WEBLATE_BOT_GITHUB_TOKEN }}
+        i18n_check:
+            runs-on: ubuntu-latest
+            if: github.actor != 'WeblateGravity' # Ignore pull requests from bot
+            steps:
+            - uses: actions/checkout@v4
+                with:
+                ref: ${{ github.event.pull_request.head.sha }}
+    
+            - name: Verifying changes with Weblate
+                uses: dgaponov/weblate-action@v1.17.0
+                with:
+                    SERVER_URL: "http://SOME_WEBLATE_SERVER_URL" # Weblate server URL
+                    TOKEN: ${{ secrets.WEBLATE_TOKEN }}
+                    PROJECT: "project_slug"
+                    GITHUB_TOKEN: ${{ secrets.WEBLATE_BOT_GITHUB_TOKEN }}
     ```
