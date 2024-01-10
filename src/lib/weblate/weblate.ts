@@ -199,6 +199,7 @@ export class Weblate {
                 new_base: source,
                 allow_translation_propagation: false,
                 manage_units: false,
+                merge_style: 'merge',
             },
         );
 

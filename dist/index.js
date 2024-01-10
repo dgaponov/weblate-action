@@ -38344,7 +38344,8 @@ var Weblate = class {
         template: source,
         new_base: source,
         allow_translation_propagation: false,
-        manage_units: false
+        manage_units: false,
+        merge_style: "merge"
       }
     );
     if (applyDefaultAddons) {
