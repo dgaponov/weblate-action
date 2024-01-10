@@ -346,11 +346,11 @@ export class Weblate {
     }) {
         const componentSlug = getComponentSlug({name, categorySlug});
 
-        return (
-            await this.client.get<Paginated<ComponentTranslationStats>>(
-                `/api/components/${this.project}/${componentSlug}/statistics/`,
-            )
-        ).results;
+        const {results} = await this.client.get<
+            Paginated<ComponentTranslationStats>
+        >(`/api/components/${this.project}/${componentSlug}/statistics/`);
+
+        return results.map(result => ({...result, componentName: name}));
     }
 
     async applyDefaultAddonsToComponent({

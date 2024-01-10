@@ -38455,9 +38455,8 @@ var Weblate = class {
     categorySlug
   }) {
     const componentSlug = getComponentSlug({ name, categorySlug });
-    return (await this.client.get(
-      `/api/components/${this.project}/${componentSlug}/statistics/`
-    )).results;
+    const { results } = await this.client.get(`/api/components/${this.project}/${componentSlug}/statistics/`);
+    return results.map((result) => ({ ...result, componentName: name }));
   }
   async applyDefaultAddonsToComponent({
     name,
@@ -38745,7 +38744,7 @@ var validatePullRequest = async ({ config, weblate }) => {
   const failedComponents = componentsStats.flat().filter((stats) => stats.translated_percent !== 100);
   if (failedComponents.length) {
     const failedComponentsLinks = failedComponents.map((stat) => {
-      const name = stat.name.split("__")[0];
+      const name = stat.componentName.split("__")[0];
       return `<a href="${stat.url}">${name} (${stat.code})</a>`;
     }).join("<br>");
     const errorMessage = [

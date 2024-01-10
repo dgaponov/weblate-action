@@ -289,7 +289,7 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
     if (failedComponents.length) {
         const failedComponentsLinks = failedComponents
             .map(stat => {
-                const name = stat.name.split('__')[0];
+                const name = stat.componentName.split('__')[0];
                 return `<a href="${stat.url}">${name} (${stat.code})</a>`;
             })
             .join('<br>');
