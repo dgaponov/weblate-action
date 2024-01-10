@@ -627,7 +627,7 @@ var require_tunnel = __commonJS({
     var net = require("net");
     var tls = require("tls");
     var http2 = require("http");
-    var https2 = require("https");
+    var https3 = require("https");
     var events = require("events");
     var assert = require("assert");
     var util2 = require("util");
@@ -649,12 +649,12 @@ var require_tunnel = __commonJS({
     }
     function httpOverHttps(options) {
       var agent = new TunnelingAgent(options);
-      agent.request = https2.request;
+      agent.request = https3.request;
       return agent;
     }
     function httpsOverHttps(options) {
       var agent = new TunnelingAgent(options);
-      agent.request = https2.request;
+      agent.request = https3.request;
       agent.createSocket = createSecureSocket;
       agent.defaultPort = 443;
       return agent;
@@ -16583,7 +16583,7 @@ var require_lib = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.HttpClient = exports.isHttps = exports.HttpClientResponse = exports.HttpClientError = exports.getProxyUrl = exports.MediaTypes = exports.Headers = exports.HttpCodes = void 0;
     var http2 = __importStar(require("http"));
-    var https2 = __importStar(require("https"));
+    var https3 = __importStar(require("https"));
     var pm = __importStar(require_proxy());
     var tunnel = __importStar(require_tunnel2());
     var undici_1 = require_undici();
@@ -16974,7 +16974,7 @@ var require_lib = __commonJS({
         const info = {};
         info.parsedUrl = requestUrl;
         const usingSsl = info.parsedUrl.protocol === "https:";
-        info.httpModule = usingSsl ? https2 : http2;
+        info.httpModule = usingSsl ? https3 : http2;
         const defaultPort = usingSsl ? 443 : 80;
         info.options = {};
         info.options.host = info.parsedUrl.hostname;
@@ -17044,11 +17044,11 @@ var require_lib = __commonJS({
         }
         if (this._keepAlive && !agent) {
           const options = { keepAlive: this._keepAlive, maxSockets };
-          agent = usingSsl ? new https2.Agent(options) : new http2.Agent(options);
+          agent = usingSsl ? new https3.Agent(options) : new http2.Agent(options);
           this._agent = agent;
         }
         if (!agent) {
-          agent = usingSsl ? https2.globalAgent : http2.globalAgent;
+          agent = usingSsl ? https3.globalAgent : http2.globalAgent;
         }
         if (usingSsl && this._ignoreSslError) {
           agent.options = Object.assign(agent.options || {}, {
@@ -31047,7 +31047,7 @@ var require_form_data = __commonJS({
     var util2 = require("util");
     var path2 = require("path");
     var http2 = require("http");
-    var https2 = require("https");
+    var https3 = require("https");
     var parseUrl = require("url").parse;
     var fs2 = require("fs");
     var Stream = require("stream").Stream;
@@ -31315,7 +31315,7 @@ var require_form_data = __commonJS({
       }
       options.headers = this.getHeaders(params.headers);
       if (options.protocol == "https:") {
-        request = https2.request(options);
+        request = https3.request(options);
       } else {
         request = http2.request(options);
       }
@@ -32199,7 +32199,7 @@ var require_follow_redirects = __commonJS({
     var url2 = require("url");
     var URL3 = url2.URL;
     var http2 = require("http");
-    var https2 = require("https");
+    var https3 = require("https");
     var Writable = require("stream").Writable;
     var assert = require("assert");
     var debug = require_debug();
@@ -32646,7 +32646,7 @@ var require_follow_redirects = __commonJS({
     function isBuffer2(value) {
       return typeof value === "object" && "length" in value;
     }
-    module2.exports = wrap({ http: http2, https: https2 });
+    module2.exports = wrap({ http: http2, https: https3 });
     module2.exports.wrap = wrap;
   }
 });
@@ -38136,6 +38136,9 @@ var {
   mergeConfig: mergeConfig2
 } = axios_default;
 
+// src/lib/weblate/weblate.ts
+var import_https2 = __toESM(require("https"));
+
 // src/lib/weblate/normalizers.ts
 var import_kebabCase = __toESM(require_kebabCase());
 var getUrlLastPart = (url2) => {
@@ -38247,7 +38250,10 @@ var Weblate = class {
       baseURL: serverUrl,
       headers: {
         Authorization: `Token ${token}`
-      }
+      },
+      httpsAgent: new import_https2.default.Agent({ keepAlive: true }),
+      timeout: 6e4,
+      maxContentLength: 500 * 1e3 * 1e3
     });
     this.client.interceptors.response.use(normalizeResponse);
   }

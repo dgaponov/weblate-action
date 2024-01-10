@@ -1,4 +1,5 @@
 import axios, {isAxiosError} from 'axios';
+import https from 'https';
 import type {AxiosInstance} from 'axios';
 import type {
     Category,
@@ -70,6 +71,9 @@ export class Weblate {
             headers: {
                 Authorization: `Token ${token}`,
             },
+            httpsAgent: new https.Agent({keepAlive: true}),
+            timeout: 60000,
+            maxContentLength: 500 * 1000 * 1000,
         });
 
         this.client.interceptors.response.use(normalizeResponse);
