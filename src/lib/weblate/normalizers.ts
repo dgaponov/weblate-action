@@ -72,8 +72,9 @@ export const normalizeResponse = (response: AxiosResponse): AxiosResponse => {
             'next' in normalizedResponse &&
             typeof normalizedResponse['next'] === 'string'
         ) {
+            // ?page=2 -> 2
             normalizedResponse['next'] = parseInt(
-                normalizedResponse['next'],
+                normalizedResponse['next'].split('=')[1],
                 10,
             );
         }
@@ -82,8 +83,9 @@ export const normalizeResponse = (response: AxiosResponse): AxiosResponse => {
             'previous' in normalizedResponse &&
             typeof normalizedResponse['previous'] === 'string'
         ) {
+            // ?page=2 -> 2
             normalizedResponse['previous'] = parseInt(
-                normalizedResponse['previous'],
+                normalizedResponse['previous'].split('=')[1],
                 10,
             );
         }

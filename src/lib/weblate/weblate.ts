@@ -13,7 +13,20 @@ declare module 'axios' {
     interface AxiosResponse<T = any> extends Promise<T> {}
 }
 
-const DEFAULT_COMPONENT_ADDONS = [{name: 'weblate.gravity.custom'}];
+const DEFAULT_COMPONENT_ADDONS = [
+    {
+        name: 'weblate.git.squash',
+        configuration: {
+            squash: 'all',
+        },
+    },
+    {
+        name: 'weblate.flags.target_edit',
+    },
+    {name: 'weblate.flags.source_edit'},
+    {name: 'weblate.flags.same_edit'},
+    {name: 'weblate.gravity.custom'},
+];
 
 const getComponentSlug = ({
     name,
