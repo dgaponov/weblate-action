@@ -38206,20 +38206,7 @@ var resolveComponents = async (keysetsPath) => {
 };
 
 // src/lib/weblate/weblate.ts
-var DEFAULT_COMPONENT_ADDONS = [
-  {
-    name: "weblate.git.squash",
-    configuration: {
-      squash: "all"
-    }
-  },
-  {
-    name: "weblate.flags.target_edit"
-  },
-  { name: "weblate.flags.source_edit" },
-  { name: "weblate.flags.same_edit" },
-  { name: "weblate.gravity.custom" }
-];
+var DEFAULT_COMPONENT_ADDONS = [{ name: "weblate.gravity.custom" }];
 var getComponentSlug = ({
   name,
   categorySlug
