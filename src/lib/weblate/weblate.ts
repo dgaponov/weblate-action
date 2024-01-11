@@ -10,9 +10,41 @@ import type {
 } from './types';
 import {normalizeResponse, slugify} from './normalizers';
 import {sleep} from '../../utils';
+
 declare module 'axios' {
     interface AxiosResponse<T = any> extends Promise<T> {}
 }
+
+const getPullRequestMessage = ({
+    pullRequestNumber,
+    pullRequestAuthor,
+}: {
+    pullRequestNumber?: number;
+    pullRequestAuthor?: string;
+}) => {
+    const title = pullRequestNumber
+        ? `Translations update from {{ site_title }} for PR #${pullRequestNumber}\n`
+        : 'Translations update from {{ site_title }}\n';
+
+    const pullRequestInfo =
+        pullRequestAuthor && pullRequestNumber
+            ? `Pull Request #${pullRequestNumber} (author: @${pullRequestAuthor}). You need to merge these changes into your branch.`
+            : '';
+
+    return [
+        title,
+        pullRequestInfo,
+        'Translations update from [{{ site_title }}]({{ site_url }}) for [{{ project_name }}/{{ component_name }}]({{url}}).\n',
+        '{% if component_linked_childs %}',
+        'It also includes following components:',
+        '{% for linked in component_linked_childs %}',
+        '* [{{ linked.project_name }}/{{ linked.name }}]({{ linked.url }})',
+        '{% endfor %}',
+        '{% endif %}\n',
+        'Current translation status:\n',
+        '![Weblate translation status]({{widget_url}})\n',
+    ].join('\n');
+};
 
 const DEFAULT_COMPONENT_ADDONS = [
     {
@@ -145,6 +177,8 @@ export class Weblate {
         branchForUpdates,
         applyDefaultAddons = true,
         updateIfExist,
+        pullRequestAuthor,
+        pullRequestNumber,
     }: {
         name: string;
         fileMask: string;
@@ -157,6 +191,8 @@ export class Weblate {
         branchForUpdates?: string;
         applyDefaultAddons?: boolean;
         updateIfExist?: boolean;
+        pullRequestAuthor?: string;
+        pullRequestNumber?: number;
     }) {
         const component = await this.findComponent({name, categorySlug});
 
@@ -212,6 +248,10 @@ export class Weblate {
                 allow_translation_propagation: false,
                 manage_units: false,
                 merge_style: 'merge',
+                pull_message: getPullRequestMessage({
+                    pullRequestAuthor,
+                    pullRequestNumber,
+                }),
             },
         );
 

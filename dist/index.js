@@ -35147,11 +35147,13 @@ function getConfiguration() {
   const masterBranch = (0, import_core.getInput)("MASTER_BRANCH");
   const branchName = getBranchName();
   let gitRepo;
+  let pullRequestAuthor;
   if (mode === "VALIDATE_PULL_REQUEST") {
     if (!import_github.context.payload.pull_request?.head?.repo?.html_url) {
       throw Error("Repository url for pull request not found");
     }
     gitRepo = import_github.context.payload.pull_request.head.repo.html_url;
+    pullRequestAuthor = import_github.context.payload.pull_request.user?.login;
   } else {
     if (!import_github.context.payload.repository?.html_url) {
       throw Error("Repository url for master branch not found");
@@ -35174,7 +35176,8 @@ function getConfiguration() {
     pullRequestNumber: import_github.context.payload.pull_request?.number,
     keysetsPath: (0, import_core.getInput)("KEYSETS_PATH"),
     masterBranch,
-    githubToken: (0, import_core.getInput)("GITHUB_TOKEN")
+    githubToken: (0, import_core.getInput)("GITHUB_TOKEN"),
+    pullRequestAuthor
   };
 }
 
@@ -38209,6 +38212,27 @@ var resolveComponents = async (keysetsPath) => {
 };
 
 // src/lib/weblate/weblate.ts
+var getPullRequestMessage = ({
+  pullRequestNumber,
+  pullRequestAuthor
+}) => {
+  const title = pullRequestNumber ? `Translations update from {{ site_title }} for PR #${pullRequestNumber}
+` : "Translations update from {{ site_title }}\n";
+  const pullRequestInfo = pullRequestAuthor && pullRequestNumber ? `Pull Request #${pullRequestNumber} (author: @${pullRequestAuthor}). You need to merge these changes into your branch.` : "";
+  return [
+    title,
+    pullRequestInfo,
+    "Translations update from [{{ site_title }}]({{ site_url }}) for [{{ project_name }}/{{ component_name }}]({{url}}).\n",
+    "{% if component_linked_childs %}",
+    "It also includes following components:",
+    "{% for linked in component_linked_childs %}",
+    "* [{{ linked.project_name }}/{{ linked.name }}]({{ linked.url }})",
+    "{% endfor %}",
+    "{% endif %}\n",
+    "Current translation status:\n",
+    "![Weblate translation status]({{widget_url}})\n"
+  ].join("\n");
+};
 var DEFAULT_COMPONENT_ADDONS = [
   {
     name: "weblate.git.squash",
@@ -38313,7 +38337,9 @@ var Weblate = class {
     repoForUpdates,
     branchForUpdates,
     applyDefaultAddons = true,
-    updateIfExist
+    updateIfExist,
+    pullRequestAuthor,
+    pullRequestNumber
   }) {
     const component = await this.findComponent({ name, categorySlug });
     if (component) {
@@ -38359,7 +38385,11 @@ var Weblate = class {
         new_base: source,
         allow_translation_propagation: false,
         manage_units: false,
-        merge_style: "merge"
+        merge_style: "merge",
+        pull_message: getPullRequestMessage({
+          pullRequestAuthor,
+          pullRequestNumber
+        })
       }
     );
     if (applyDefaultAddons) {
@@ -38686,7 +38716,9 @@ var validatePullRequest = async ({ config, weblate }) => {
           categorySlug,
           repo: `weblate://${config.project}/${masterCategory.slug}/${firstMasterComponent.slug}`,
           source: component.template,
-          applyDefaultAddons: false
+          applyDefaultAddons: false,
+          pullRequestAuthor: config.pullRequestAuthor,
+          pullRequestNumber: config.pullRequestNumber
         })
       )
     );
@@ -38720,6 +38752,8 @@ var validatePullRequest = async ({ config, weblate }) => {
     branch: config.branchName,
     source: firstComponent.source,
     repoForUpdates: config.gitRepo,
+    pullRequestAuthor: config.pullRequestAuthor,
+    pullRequestNumber: config.pullRequestNumber,
     updateIfExist: categoryWasRecentlyCreated
   });
   const createComponentsPromises = otherComponents.map(
@@ -38730,6 +38764,8 @@ var validatePullRequest = async ({ config, weblate }) => {
       categorySlug,
       repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
       source: component.source,
+      pullRequestAuthor: config.pullRequestAuthor,
+      pullRequestNumber: config.pullRequestNumber,
       updateIfExist: categoryWasRecentlyCreated
     })
   );

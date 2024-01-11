@@ -18,6 +18,7 @@ export type Configuration = {
     masterBranch: string;
     githubToken: string;
     pullRequestNumber?: number;
+    pullRequestAuthor?: string;
 };
 
 function getBranchName(): string {
@@ -37,6 +38,7 @@ export function getConfiguration(): Configuration {
     const branchName = getBranchName();
 
     let gitRepo: string;
+    let pullRequestAuthor: string | undefined;
 
     if (mode === 'VALIDATE_PULL_REQUEST') {
         if (!context.payload.pull_request?.head?.repo?.html_url) {
@@ -44,6 +46,7 @@ export function getConfiguration(): Configuration {
         }
 
         gitRepo = context.payload.pull_request.head.repo.html_url;
+        pullRequestAuthor = context.payload.pull_request.user?.login;
     } else {
         if (!context.payload.repository?.html_url) {
             throw Error('Repository url for master branch not found');
@@ -70,5 +73,6 @@ export function getConfiguration(): Configuration {
         keysetsPath: getInput('KEYSETS_PATH'),
         masterBranch,
         githubToken: getInput('GITHUB_TOKEN'),
+        pullRequestAuthor,
     };
 }

@@ -203,6 +203,8 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
                     repo: `weblate://${config.project}/${masterCategory.slug}/${firstMasterComponent.slug}`,
                     source: component.template,
                     applyDefaultAddons: false,
+                    pullRequestAuthor: config.pullRequestAuthor,
+                    pullRequestNumber: config.pullRequestNumber,
                 }),
             ),
         );
@@ -243,6 +245,8 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
         branch: config.branchName,
         source: firstComponent.source,
         repoForUpdates: config.gitRepo,
+        pullRequestAuthor: config.pullRequestAuthor,
+        pullRequestNumber: config.pullRequestNumber,
         updateIfExist: categoryWasRecentlyCreated,
     });
 
@@ -255,6 +259,8 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
             categorySlug,
             repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
             source: component.source,
+            pullRequestAuthor: config.pullRequestAuthor,
+            pullRequestNumber: config.pullRequestNumber,
             updateIfExist: categoryWasRecentlyCreated,
         }),
     );
