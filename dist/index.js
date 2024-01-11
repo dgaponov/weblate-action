@@ -38686,6 +38686,20 @@ var validatePullRequest = async ({ config, weblate }) => {
       componentNames: createdComponents.map(({ name }) => name),
       categorySlug
     });
+  } else {
+    const weblateComponents2 = await weblate.getComponentsInCategory({
+      categoryId
+    });
+    if (weblateComponents2.length) {
+      await weblate.pullComponentRemoteChanges({
+        name: weblateComponents2[0].name,
+        categorySlug
+      });
+      await weblate.waitComponentsTasks({
+        componentNames: weblateComponents2.map(({ name }) => name),
+        categorySlug
+      });
+    }
   }
   const componentsInCode = await resolveComponents(config.keysetsPath);
   const [firstComponent, ...otherComponents] = componentsInCode;

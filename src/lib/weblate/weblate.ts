@@ -26,6 +26,14 @@ const DEFAULT_COMPONENT_ADDONS = [
     },
     {name: 'weblate.flags.source_edit'},
     {name: 'weblate.flags.same_edit'},
+    {
+        name: 'weblate.json.customize',
+        configuration: {
+            sort_keys: 1,
+            style: 'spaces',
+            indent: 2,
+        },
+    },
     {name: 'weblate.gravity.custom'},
 ];
 

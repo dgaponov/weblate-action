@@ -212,6 +212,21 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
             componentNames: createdComponents.map(({name}) => name),
             categorySlug,
         });
+    } else {
+        const weblateComponents = await weblate.getComponentsInCategory({
+            categoryId,
+        });
+
+        if (weblateComponents.length) {
+            await weblate.pullComponentRemoteChanges({
+                name: weblateComponents[0].name,
+                categorySlug,
+            });
+            await weblate.waitComponentsTasks({
+                componentNames: weblateComponents.map(({name}) => name),
+                categorySlug,
+            });
+        }
     }
 
     // Resolve components from file structure in feature branch
