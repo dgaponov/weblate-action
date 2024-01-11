@@ -117,7 +117,7 @@ export class Weblate {
             const {next, results} = await this.client.get<Paginated<Category>>(
                 `/api/projects/${this.project}/categories/`,
                 {
-                    params: {page},
+                    params: {page, page_size: 1000},
                 },
             );
 

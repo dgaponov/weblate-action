@@ -38290,7 +38290,7 @@ var Weblate = class {
       const { next, results } = await this.client.get(
         `/api/projects/${this.project}/categories/`,
         {
-          params: { page }
+          params: { page, page_size: 1e3 }
         }
       );
       category = results.find(({ name }) => name === branchName);
