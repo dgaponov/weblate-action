@@ -24,6 +24,7 @@ export type Component = {
     template: string;
     category?: string;
     task_url?: string;
+    git_export?: string;
     wasRecentlyCreated?: boolean;
 };
 

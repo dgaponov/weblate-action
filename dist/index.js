@@ -38223,12 +38223,6 @@ var getPullRequestMessage = ({
     title,
     pullRequestInfo,
     "Translations update from [{{ site_title }}]({{ site_url }}) for [{{ project_name }}/{{ component_name }}]({{url}}).\n",
-    "{% if component_linked_childs %}",
-    "It also includes following components:",
-    "{% for linked in component_linked_childs %}",
-    "* [{{ linked.project_name }}/{{ linked.name }}]({{ linked.url }})",
-    "{% endfor %}",
-    "{% endif %}\n",
     "Current translation status:\n",
     "![Weblate translation status]({{widget_url}})\n"
   ].join("\n");
@@ -38856,8 +38850,26 @@ var validatePullRequest = async ({ config, weblate }) => {
       "Errors occurred when merging changes from your branch with the Weblate branch.",
       `\`\`\`${repositoryInfo.merge_failure}\`\`\`
 `,
-      "Resolve conflicts according to instructions",
-      "https://docs.weblate.org/en/latest/faq.html#how-to-fix-merge-conflicts-in-translations"
+      "**Resolve conflicts according to instructions**",
+      "1. Switch to the current branch associated with this pull request.",
+      `\`\`\`git checkout ${config.branchName}\`\`\``,
+      "2. Add Weblate as remote:",
+      "```",
+      `git remote add weblate ${firstWeblateComponent.git_export}`,
+      "git remote update weblate",
+      "```",
+      "3. Merge Weblate changes:",
+      "```",
+      `git merge weblate/${config.branchName}`,
+      "```",
+      "4. Resolve conflicts:",
+      "```",
+      "edit ...",
+      "git add ...",
+      "git commit",
+      "```",
+      "5. Push changes to upstream repository, Weblate will fetch merge from there:",
+      "```git push origin````"
     ].join("\n");
     await octokit.rest.issues.createComment({
       ...import_github2.context.repo,

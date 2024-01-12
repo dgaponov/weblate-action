@@ -35,12 +35,6 @@ const getPullRequestMessage = ({
         title,
         pullRequestInfo,
         'Translations update from [{{ site_title }}]({{ site_url }}) for [{{ project_name }}/{{ component_name }}]({{url}}).\n',
-        '{% if component_linked_childs %}',
-        'It also includes following components:',
-        '{% for linked in component_linked_childs %}',
-        '* [{{ linked.project_name }}/{{ linked.name }}]({{ linked.url }})',
-        '{% endfor %}',
-        '{% endif %}\n',
         'Current translation status:\n',
         '![Weblate translation status]({{widget_url}})\n',
     ].join('\n');
