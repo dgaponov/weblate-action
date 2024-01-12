@@ -241,7 +241,7 @@ export class Weblate {
                 new_base: source,
                 allow_translation_propagation: false,
                 manage_units: false,
-                merge_style: 'merge',
+                merge_style: 'rebase',
                 pull_message: getPullRequestMessage({
                     pullRequestAuthor,
                     pullRequestNumber,
