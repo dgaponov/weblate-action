@@ -38848,11 +38848,14 @@ var validatePullRequest = async ({ config, weblate }) => {
     const errorMessage = [
       "**i18n-check**",
       "Errors occurred when merging changes from your branch with the Weblate branch.",
-      `\`\`\`${repositoryInfo.merge_failure}\`\`\`
-`,
+      "```",
+      repositoryInfo.merge_failure,
+      "```",
       "**Resolve conflicts according to instructions**",
       "1. Switch to the current branch associated with this pull request.",
-      `\`\`\`git checkout ${config.branchName}\`\`\``,
+      "```",
+      `git checkout ${config.branchName}`,
+      "```",
       "2. Add Weblate as remote:",
       "```",
       `git remote add weblate ${firstWeblateComponent.git_export}`,
@@ -38869,7 +38872,9 @@ var validatePullRequest = async ({ config, weblate }) => {
       "git commit",
       "```",
       "5. Push changes to upstream repository, Weblate will fetch merge from there:",
-      "```git push origin````"
+      "```",
+      "git push origin",
+      "```"
     ].join("\n");
     await octokit.rest.issues.createComment({
       ...import_github2.context.repo,
