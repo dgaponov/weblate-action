@@ -1,9 +1,14 @@
 import {ActionMode, Configuration, getConfiguration} from './config';
 import {Weblate} from './lib/weblate';
-import {ComponentInCode, resolveComponents} from './utils';
+import {resolveComponents} from './utils';
 import {setFailed} from '@actions/core';
-import partition from 'lodash/partition';
 import {context, getOctokit} from '@actions/github';
+import {
+    getComponentRepositoryErrors,
+    getUntranslatedComponentsError,
+    pullRemoteChanges,
+    removeMissingComponents,
+} from './lib/logic';
 
 type HandlerArgs = {
     config: Configuration;
@@ -11,72 +16,6 @@ type HandlerArgs = {
 };
 
 type Handler = (args: HandlerArgs) => Promise<void>;
-
-const removeMissingComponents = async ({
-    config,
-    weblate,
-    categoryId,
-    categorySlug,
-    componentsInCode,
-}: {
-    config: Configuration;
-    weblate: Weblate;
-    categoryId: string;
-    categorySlug: string;
-    componentsInCode: ComponentInCode[];
-}) => {
-    const weblateComponents = await weblate.getComponentsInCategory({
-        categoryId,
-    });
-
-    // Removing components that don't exist in the code
-    const [componentsToRemove, aliveComponents] = partition(
-        weblateComponents,
-        ({name}) =>
-            !componentsInCode.find(
-                component => component.name === name.split('__')[0],
-            ),
-    );
-
-    if (componentsToRemove.length) {
-        const componentsWithoutLinking = componentsToRemove.filter(
-            ({repo}) => !repo.startsWith('weblate://'),
-        );
-
-        // Set component as the main and linking with others
-        if (componentsWithoutLinking.length && aliveComponents.length) {
-            const [mainComponent, ...componentsToLinking] = aliveComponents;
-
-            await weblate.updateComponent({
-                name: mainComponent.name,
-                categorySlug,
-                repo: config.gitRepo,
-                branch: config.branchName,
-                fileMask: mainComponent.filemask,
-                repoForUpdates: config.gitRepo,
-                branchForUpdates: config.branchName,
-            });
-
-            const requests = componentsToLinking.map(component =>
-                weblate.updateComponent({
-                    name: component.name,
-                    categorySlug,
-                    repo: `weblate://${config.project}/${categorySlug}/${mainComponent.slug}`,
-                    fileMask: component.filemask,
-                }),
-            );
-
-            await Promise.all(requests);
-        }
-
-        // Remove components
-        const requests = componentsToRemove.map(({name}) =>
-            weblate.removeComponent({name, categorySlug}),
-        );
-
-        await Promise.all(requests);
-    }
-};
 
 const syncMaster = async ({config, weblate}: HandlerArgs) => {
     // Create category for master branch
@@ -215,19 +154,22 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
             categorySlug,
         });
     } else {
-        const weblateComponents = await weblate.getComponentsInCategory({
+        const {mergeFailureMessage} = await pullRemoteChanges({
+            weblate,
+            config,
             categoryId,
+            categorySlug,
         });
 
-        if (weblateComponents.length) {
-            await weblate.pullComponentRemoteChanges({
-                name: weblateComponents[0].name,
-                categorySlug,
+        if (mergeFailureMessage) {
+            await octokit.rest.issues.createComment({
+                ...context.repo,
+                issue_number: config.pullRequestNumber as number,
+                body: mergeFailureMessage,
             });
-            await weblate.waitComponentsTasks({
-                componentNames: weblateComponents.map(({name}) => name),
-                categorySlug,
-            });
+
+            setFailed(mergeFailureMessage);
+            return;
         }
     }
 
@@ -294,122 +236,60 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
         componentsInCode,
     });
 
-    const componentsStats = await Promise.all(
-        weblateComponents.map(component =>
-            weblate.getComponentTranslationsStats({
-                name: component.name,
-                categorySlug,
-            }),
-        ),
-    );
-
-    const failedComponents = componentsStats
-        .flat()
-        .filter(stats => stats.translated_percent !== 100);
-
-    if (failedComponents.length) {
-        const failedComponentsLinks = failedComponents
-            .map(stat => {
-                const name = stat.componentName.split('__')[0];
-                return `<a href="${stat.url}">${name} (${stat.code})</a>`;
-            })
-            .join('<br>');
-
-        const errorMessage = [
-            '**i18n-check**',
-            '<details>',
-            '<summary>The following components have not been translated</summary>',
-            `<p>${failedComponentsLinks}</p>`,
-            '</details>',
-            '\nWait for the reviewers to check your changes in Weblate and try running github action again.',
-        ].join('\n');
-
-        await octokit.rest.issues.createComment({
-            ...context.repo,
-            issue_number: config.pullRequestNumber as number,
-            body: errorMessage,
-        });
-
-        setFailed(errorMessage);
-        return;
-    }
-
-    const repositoryInfo = await weblate.getComponentRepository({
+    const repositoryErrors = await getComponentRepositoryErrors({
         name: firstWeblateComponent.name,
         categorySlug,
+        config,
+        weblate,
     });
 
-    if (repositoryInfo.needs_push) {
-        const errorMessage = [
-            '**i18n-check**',
-            'Please merge the Pull Request with the changes from Weblate into your branch.',
-        ].join('\n');
-
+    if (repositoryErrors.mergeFailureError) {
         await octokit.rest.issues.createComment({
             ...context.repo,
             issue_number: config.pullRequestNumber as number,
-            body: errorMessage,
+            body: repositoryErrors.mergeFailureError,
         });
 
-        setFailed(errorMessage);
-    }
-
-    if (repositoryInfo.needs_commit) {
-        const errorMessage = [
-            '**i18n-check**',
-            'The reviewer is still working on checking your i18n changes. Wait for a Pull Request from Weblate.',
-        ].join('\n');
-
-        await octokit.rest.issues.createComment({
-            ...context.repo,
-            issue_number: config.pullRequestNumber as number,
-            body: errorMessage,
-        });
-
-        setFailed(errorMessage);
+        setFailed(repositoryErrors.mergeFailureError);
         return;
     }
 
-    if (repositoryInfo.merge_failure) {
-        const errorMessage = [
-            '**i18n-check**',
-            'Errors occurred when merging changes from your branch with the Weblate branch.',
-            '```',
-            repositoryInfo.merge_failure,
-            '```',
-            '**Resolve conflicts according to instructions**',
-            '1. Switch to the current branch associated with this pull request.',
-            '```',
-            `git checkout ${config.branchName}`,
-            '```',
-            '2. Add Weblate as remote:',
-            '```',
-            `git remote add weblate ${firstWeblateComponent.git_export}`,
-            'git remote update weblate',
-            '```',
-            '3. Merge Weblate changes:',
-            '```',
-            `git merge weblate/${config.branchName}`,
-            '```',
-            '4. Resolve conflicts:',
-            '```',
-            'edit ...',
-            'git add ...',
-            'git commit',
-            '```',
-            '5. Push changes to upstream repository, Weblate will fetch merge from there:',
-            '```',
-            'git push origin',
-            '```',
-        ].join('\n');
-
+    if (repositoryErrors.needsCommitError) {
         await octokit.rest.issues.createComment({
             ...context.repo,
             issue_number: config.pullRequestNumber as number,
-            body: errorMessage,
+            body: repositoryErrors.needsCommitError,
         });
 
-        setFailed(errorMessage);
+        setFailed(repositoryErrors.needsCommitError);
+        return;
+    }
+
+    if (repositoryErrors.needsPushError) {
+        await octokit.rest.issues.createComment({
+            ...context.repo,
+            issue_number: config.pullRequestNumber as number,
+            body: repositoryErrors.needsPushError,
+        });
+
+        setFailed(repositoryErrors.needsPushError);
+        return;
+    }
+
+    const untranslatedComponentsError = await getUntranslatedComponentsError({
+        components: weblateComponents,
+        categorySlug,
+        weblate,
+    });
+
+    if (untranslatedComponentsError) {
+        await octokit.rest.issues.createComment({
+            ...context.repo,
+            issue_number: config.pullRequestNumber as number,
+            body: untranslatedComponentsError,
+        });
+
+        setFailed(untranslatedComponentsError);
         return;
     }
 };

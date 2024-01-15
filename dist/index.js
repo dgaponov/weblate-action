@@ -38560,8 +38560,10 @@ var Weblate = class {
 
 // src/index.ts
 var import_core2 = __toESM(require_core());
-var import_partition = __toESM(require_partition());
 var import_github2 = __toESM(require_github());
+
+// src/lib/logic/index.ts
+var import_partition = __toESM(require_partition());
 var removeMissingComponents = async ({
   config,
   weblate,
@@ -38609,6 +38611,145 @@ var removeMissingComponents = async ({
     await Promise.all(requests);
   }
 };
+var getComponentRepositoryErrors = async ({
+  name,
+  categorySlug,
+  config,
+  weblate
+}) => {
+  const errors = {
+    needsPushError: void 0,
+    needsCommitError: void 0,
+    mergeFailureError: void 0
+  };
+  const mainComponent = await weblate.findComponent({ name, categorySlug });
+  if (!mainComponent) {
+    throw Error(
+      `Not found component ${name} (categorySlug: ${categorySlug})`
+    );
+  }
+  const repositoryInfo = await weblate.getComponentRepository({
+    name,
+    categorySlug
+  });
+  if (repositoryInfo.needs_push) {
+    errors.needsPushError = [
+      "**i18n-check**",
+      "Please merge the Pull Request with the changes from Weblate into your branch."
+    ].join("\n");
+  }
+  if (repositoryInfo.needs_commit) {
+    errors.needsCommitError = [
+      "**i18n-check**",
+      "The reviewer is still working on checking your i18n changes. Wait for a Pull Request from Weblate."
+    ].join("\n");
+  }
+  if (repositoryInfo.merge_failure) {
+    errors.mergeFailureError = [
+      "**i18n-check**",
+      "<details>",
+      "<summary>Errors occurred when merging changes from your branch with the Weblate branch.</summary>",
+      "```",
+      repositoryInfo.merge_failure,
+      "```",
+      "</details>",
+      "**Resolve conflicts according to instructions**",
+      "1. Switch to the current branch associated with this pull request.",
+      "```",
+      `git checkout ${config.branchName}`,
+      "```",
+      "2. Add Weblate as remote:",
+      "```",
+      `git remote add weblate ${mainComponent.git_export}`,
+      "git remote update weblate",
+      "```",
+      "3. Merge Weblate changes:",
+      "```",
+      `git merge weblate/${config.branchName}`,
+      "```",
+      "4. Resolve conflicts:",
+      "```",
+      "edit ...",
+      "git add ...",
+      "git commit",
+      "```",
+      "5. Push changes to upstream repository, Weblate will fetch merge from there:",
+      "```",
+      "git push origin",
+      "```"
+    ].join("\n");
+  }
+  return errors;
+};
+var pullRemoteChanges = async ({
+  weblate,
+  config,
+  categoryId,
+  categorySlug
+}) => {
+  const weblateComponents = await weblate.getComponentsInCategory({
+    categoryId
+  });
+  if (!weblateComponents.length) {
+    return { mergeFailureMessage: void 0 };
+  }
+  const mainComponent = weblateComponents.find(
+    ({ repo }) => !repo.startsWith("weblate://")
+  );
+  if (!mainComponent) {
+    return { mainComponent, mergeFailureMessage: void 0 };
+  }
+  await weblate.pullComponentRemoteChanges({
+    name: mainComponent.name,
+    categorySlug
+  });
+  await weblate.waitComponentsTasks({
+    componentNames: weblateComponents.map(({ name }) => name),
+    categorySlug
+  });
+  const repositoryErrors = await getComponentRepositoryErrors({
+    name: mainComponent.name,
+    categorySlug,
+    weblate,
+    config
+  });
+  return {
+    mainComponent,
+    mergeFailureMessage: repositoryErrors.mergeFailureError
+  };
+};
+var getUntranslatedComponentsError = async ({
+  components,
+  weblate,
+  categorySlug
+}) => {
+  const componentsStats = await Promise.all(
+    components.map(
+      (component) => weblate.getComponentTranslationsStats({
+        name: component.name,
+        categorySlug
+      })
+    )
+  );
+  const failedComponents = componentsStats.flat().filter((stats) => stats.translated_percent !== 100);
+  if (failedComponents.length) {
+    const failedComponentsLinks = failedComponents.map((stat) => {
+      const name = stat.componentName.split("__")[0];
+      return `<a href="${stat.url}">${name} (${stat.code})</a>`;
+    }).join("<br>");
+    return [
+      "**i18n-check**",
+      "<details>",
+      "<summary>The following components have not been translated</summary>",
+      `<p>${failedComponentsLinks}</p>`,
+      "</details>",
+      "\nWait for the reviewers to check your changes in Weblate and try running github action again."
+    ].join("\n");
+  }
+  return void 0;
+};
+
+// src/index.ts
 var syncMaster = async ({ config, weblate }) => {
   const {
     id: categoryId,
@@ -38721,18 +38862,20 @@ var validatePullRequest = async ({ config, weblate }) => {
       categorySlug
     });
   } else {
-    const weblateComponents2 = await weblate.getComponentsInCategory({
-      categoryId
+    const { mergeFailureMessage } = await pullRemoteChanges({
+      weblate,
+      config,
+      categoryId,
+      categorySlug
     });
-    if (weblateComponents2.length) {
-      await weblate.pullComponentRemoteChanges({
-        name: weblateComponents2[0].name,
-        categorySlug
+    if (mergeFailureMessage) {
+      await octokit.rest.issues.createComment({
+        ...import_github2.context.repo,
+        issue_number: config.pullRequestNumber,
+        body: mergeFailureMessage
       });
-      await weblate.waitComponentsTasks({
-        componentNames: weblateComponents2.map(({ name }) => name),
-        categorySlug
-      });
+      (0, import_core2.setFailed)(mergeFailureMessage);
+      return;
     }
   }
   const componentsInCode = await resolveComponents(config.keysetsPath);
@@ -38785,103 +38928,51 @@ var validatePullRequest = async ({ config, weblate }) => {
     categorySlug,
     componentsInCode
   });
-  const componentsStats = await Promise.all(
-    weblateComponents.map(
-      (component) => weblate.getComponentTranslationsStats({
-        name: component.name,
-        categorySlug
-      })
-    )
-  );
-  const failedComponents = componentsStats.flat().filter((stats) => stats.translated_percent !== 100);
-  if (failedComponents.length) {
-    const failedComponentsLinks = failedComponents.map((stat) => {
-      const name = stat.componentName.split("__")[0];
-      return `<a href="${stat.url}">${name} (${stat.code})</a>`;
-    }).join("<br>");
-    const errorMessage = [
-      "**i18n-check**",
-      "<details>",
-      "<summary>The following components have not been translated</summary>",
-      `<p>${failedComponentsLinks}</p>`,
-      "</details>",
-      "\nWait for the reviewers to check your changes in Weblate and try running github action again."
-    ].join("\n");
-    await octokit.rest.issues.createComment({
-      ...import_github2.context.repo,
-      issue_number: config.pullRequestNumber,
-      body: errorMessage
-    });
-    (0, import_core2.setFailed)(errorMessage);
-    return;
-  }
-  const repositoryInfo = await weblate.getComponentRepository({
+  const repositoryErrors = await getComponentRepositoryErrors({
     name: firstWeblateComponent.name,
-    categorySlug
+    categorySlug,
+    config,
+    weblate
   });
-  if (repositoryInfo.needs_push) {
-    const errorMessage = [
-      "**i18n-check**",
-      "Please merge the Pull Request with the changes from Weblate into your branch."
-    ].join("\n");
+  if (repositoryErrors.mergeFailureError) {
     await octokit.rest.issues.createComment({
       ...import_github2.context.repo,
       issue_number: config.pullRequestNumber,
-      body: errorMessage
+      body: repositoryErrors.mergeFailureError
     });
-    (0, import_core2.setFailed)(errorMessage);
-  }
-  if (repositoryInfo.needs_commit) {
-    const errorMessage = [
-      "**i18n-check**",
-      "The reviewer is still working on checking your i18n changes. Wait for a Pull Request from Weblate."
-    ].join("\n");
-    await octokit.rest.issues.createComment({
-      ...import_github2.context.repo,
-      issue_number: config.pullRequestNumber,
-      body: errorMessage
-    });
-    (0, import_core2.setFailed)(errorMessage);
+    (0, import_core2.setFailed)(repositoryErrors.mergeFailureError);
     return;
   }
-  if (repositoryInfo.merge_failure) {
-    const errorMessage = [
-      "**i18n-check**",
-      "Errors occurred when merging changes from your branch with the Weblate branch.",
-      "```",
-      repositoryInfo.merge_failure,
-      "```",
-      "**Resolve conflicts according to instructions**",
-      "1. Switch to the current branch associated with this pull request.",
-      "```",
-      `git checkout ${config.branchName}`,
-      "```",
-      "2. Add Weblate as remote:",
-      "```",
-      `git remote add weblate ${firstWeblateComponent.git_export}`,
-      "git remote update weblate",
-      "```",
-      "3. Merge Weblate changes:",
-      "```",
-      `git merge weblate/${config.branchName}`,
-      "```",
-      "4. Resolve conflicts:",
-      "```",
-      "edit ...",
-      "git add ...",
-      "git commit",
-      "```",
-      "5. Push changes to upstream repository, Weblate will fetch merge from there:",
-      "```",
-      "git push origin",
-      "```"
-    ].join("\n");
+  if (repositoryErrors.needsCommitError) {
     await octokit.rest.issues.createComment({
       ...import_github2.context.repo,
       issue_number: config.pullRequestNumber,
-      body: errorMessage
+      body: repositoryErrors.needsCommitError
     });
-    (0, import_core2.setFailed)(errorMessage);
+    (0, import_core2.setFailed)(repositoryErrors.needsCommitError);
+    return;
+  }
+  if (repositoryErrors.needsPushError) {
+    await octokit.rest.issues.createComment({
+      ...import_github2.context.repo,
+      issue_number: config.pullRequestNumber,
+      body: repositoryErrors.needsPushError
+    });
+    (0, import_core2.setFailed)(repositoryErrors.needsPushError);
+    return;
+  }
+  const untranslatedComponentsError = await getUntranslatedComponentsError({
+    components: weblateComponents,
+    categorySlug,
+    weblate
+  });
+  if (untranslatedComponentsError) {
+    await octokit.rest.issues.createComment({
+      ...import_github2.context.repo,
+      issue_number: config.pullRequestNumber,
+      body: untranslatedComponentsError
+    });
+    (0, import_core2.setFailed)(untranslatedComponentsError);
     return;
   }
 };
