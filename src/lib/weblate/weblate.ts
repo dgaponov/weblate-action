@@ -159,6 +159,10 @@ export class Weblate {
         return category;
     }
 
+    removeCategory(categoryId: string) {
+        return this.client.delete(`/api/categories/${categoryId}/`);
+    }
+
     async createComponent({
         name,
         fileMask,

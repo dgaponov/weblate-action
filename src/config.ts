@@ -4,6 +4,7 @@ import {context} from '@actions/github';
 export enum ActionMode {
     VALIDATE_PULL_REQUEST = 'VALIDATE_PULL_REQUEST',
     SYNC_MASTER = 'SYNC_MASTER',
+    REMOVE_BRANCH = 'REMOVE_BRANCH',
 }
 
 export type Configuration = {
@@ -21,6 +22,24 @@ export type Configuration = {
     pullRequestAuthor?: string;
 };
 
+type PullRequest = {
+    title: string;
+    number: number;
+    rebaseable: boolean;
+    merged: boolean;
+    draft: boolean;
+    html_url: string;
+    state: 'open' | 'closed';
+    head?: {
+        repo?: {
+            html_url: string;
+        };
+    };
+    user?: {
+        login?: string;
+    };
+};
+
 function getBranchName(): string {
     if (context.payload && context.payload.pull_request) {
         return context.payload.pull_request.head.ref;
@@ -30,9 +49,11 @@ function getBranchName(): string {
 }
 
 export function getConfiguration(): Configuration {
-    const mode = context.payload.pull_request
-        ? ActionMode.VALIDATE_PULL_REQUEST
-        : ActionMode.SYNC_MASTER;
+    const pullRequest = context.payload.pull_request
+        ? (context.payload.pull_request as PullRequest)
+        : undefined;
+
+    let mode: ActionMode;
 
     const masterBranch = getInput('MASTER_BRANCH');
     const branchName = getBranchName();
@@ -40,13 +61,17 @@ export function getConfiguration(): Configuration {
     let gitRepo: string;
     let pullRequestAuthor: string | undefined;
 
-    if (mode === 'VALIDATE_PULL_REQUEST') {
-        if (!context.payload.pull_request?.head?.repo?.html_url) {
+    if (pullRequest) {
+        if (!pullRequest?.head?.repo?.html_url) {
             throw Error('Repository url for pull request not found');
         }
 
-        gitRepo = context.payload.pull_request.head.repo.html_url;
-        pullRequestAuthor = context.payload.pull_request.user?.login;
+        gitRepo = pullRequest.head.repo.html_url;
+        pullRequestAuthor = pullRequest.user?.login;
+        mode =
+            pullRequest.state === 'closed'
+                ? ActionMode.REMOVE_BRANCH
+                : ActionMode.VALIDATE_PULL_REQUEST;
     } else {
         if (!context.payload.repository?.html_url) {
             throw Error('Repository url for master branch not found');
@@ -59,6 +84,7 @@ export function getConfiguration(): Configuration {
         }
 
         gitRepo = context.payload.repository.html_url;
+        mode = ActionMode.SYNC_MASTER;
     }
 
     return {

@@ -35143,17 +35143,19 @@ function getBranchName() {
   return import_github.context.ref.replace(/refs\/heads\/(.*)/, "$1");
 }
 function getConfiguration() {
-  const mode = import_github.context.payload.pull_request ? "VALIDATE_PULL_REQUEST" /* VALIDATE_PULL_REQUEST */ : "SYNC_MASTER" /* SYNC_MASTER */;
+  const pullRequest = import_github.context.payload.pull_request ? import_github.context.payload.pull_request : void 0;
+  let mode;
   const masterBranch = (0, import_core.getInput)("MASTER_BRANCH");
   const branchName = getBranchName();
   let gitRepo;
   let pullRequestAuthor;
-  if (mode === "VALIDATE_PULL_REQUEST") {
-    if (!import_github.context.payload.pull_request?.head?.repo?.html_url) {
+  if (pullRequest) {
+    if (!pullRequest?.head?.repo?.html_url) {
       throw Error("Repository url for pull request not found");
     }
-    gitRepo = import_github.context.payload.pull_request.head.repo.html_url;
-    pullRequestAuthor = import_github.context.payload.pull_request.user?.login;
+    gitRepo = pullRequest.head.repo.html_url;
+    pullRequestAuthor = pullRequest.user?.login;
+    mode = pullRequest.state === "closed" ? "REMOVE_BRANCH" /* REMOVE_BRANCH */ : "VALIDATE_PULL_REQUEST" /* VALIDATE_PULL_REQUEST */;
   } else {
     if (!import_github.context.payload.repository?.html_url) {
       throw Error("Repository url for master branch not found");
@@ -35164,6 +35166,7 @@ function getConfiguration() {
       );
     }
     gitRepo = import_github.context.payload.repository.html_url;
+    mode = "SYNC_MASTER" /* SYNC_MASTER */;
   }
   return {
     mode,
@@ -38320,6 +38323,9 @@ var Weblate = class {
     }
     return category;
   }
+  removeCategory(categoryId) {
+    return this.client.delete(`/api/categories/${categoryId}/`);
+  }
   async createComponent({
     name,
     fileMask,
@@ -38976,9 +38982,25 @@ var validatePullRequest = async ({ config, weblate }) => {
     return;
   }
 };
+var removeBranch = async ({ config, weblate }) => {
+  const category = await weblate.findCategoryForBranch(
+    `${config.branchName}__${config.pullRequestNumber}`
+  );
+  if (!category) {
+    console.log(
+      `Branch '${config.branchName}__${config.pullRequestNumber}' not found in Weblate.`
+    );
+    return;
+  }
+  await weblate.removeCategory(category.id);
+  console.log(
+    `Branch '${config.branchName}__${config.pullRequestNumber}' removed from Weblate.`
+  );
+};
 var modeToHandler = {
   ["SYNC_MASTER" /* SYNC_MASTER */]: syncMaster,
-  ["VALIDATE_PULL_REQUEST" /* VALIDATE_PULL_REQUEST */]: validatePullRequest
+  ["VALIDATE_PULL_REQUEST" /* VALIDATE_PULL_REQUEST */]: validatePullRequest,
+  ["REMOVE_BRANCH" /* REMOVE_BRANCH */]: removeBranch
 };
 async function run() {
   const config = getConfiguration();

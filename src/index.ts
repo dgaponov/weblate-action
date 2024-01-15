@@ -294,9 +294,28 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
     }
 };
 
+const removeBranch = async ({config, weblate}: HandlerArgs) => {
+    const category = await weblate.findCategoryForBranch(
+        `${config.branchName}__${config.pullRequestNumber}`,
+    );
+
+    if (!category) {
+        console.log(
+            `Branch '${config.branchName}__${config.pullRequestNumber}' not found in Weblate.`,
+        );
+        return;
+    }
+
+    await weblate.removeCategory(category.id);
+    console.log(
+        `Branch '${config.branchName}__${config.pullRequestNumber}' removed from Weblate.`,
+    );
+};
+
 const modeToHandler: Record<ActionMode, Handler> = {
     [ActionMode.SYNC_MASTER]: syncMaster,
     [ActionMode.VALIDATE_PULL_REQUEST]: validatePullRequest,
+    [ActionMode.REMOVE_BRANCH]: removeBranch,
 };
 
 async function run() {
