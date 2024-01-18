@@ -627,7 +627,7 @@ var require_tunnel = __commonJS({
     var net = require("net");
     var tls = require("tls");
     var http2 = require("http");
-    var https3 = require("https");
+    var https2 = require("https");
     var events = require("events");
     var assert = require("assert");
     var util2 = require("util");
@@ -649,12 +649,12 @@ var require_tunnel = __commonJS({
     }
     function httpOverHttps(options) {
       var agent = new TunnelingAgent(options);
-      agent.request = https3.request;
+      agent.request = https2.request;
       return agent;
     }
     function httpsOverHttps(options) {
       var agent = new TunnelingAgent(options);
-      agent.request = https3.request;
+      agent.request = https2.request;
       agent.createSocket = createSecureSocket;
       agent.defaultPort = 443;
       return agent;
@@ -8633,7 +8633,7 @@ var require_agent = __commonJS({
     function defaultFactory(origin, opts) {
       return opts && opts.connections === 1 ? new Client(origin, opts) : new Pool(origin, opts);
     }
-    var Agent = class extends DispatcherBase {
+    var Agent2 = class extends DispatcherBase {
       constructor({ factory = defaultFactory, maxRedirections = 0, connect, ...options } = {}) {
         super();
         if (typeof factory !== "function") {
@@ -8724,7 +8724,7 @@ var require_agent = __commonJS({
         await Promise.all(destroyPromises);
       }
     };
-    module2.exports = Agent;
+    module2.exports = Agent2;
   }
 });
 
@@ -10451,7 +10451,7 @@ var require_mock_agent = __commonJS({
   "node_modules/undici/lib/mock/mock-agent.js"(exports, module2) {
     "use strict";
     var { kClients } = require_symbols();
-    var Agent = require_agent();
+    var Agent2 = require_agent();
     var {
       kAgent,
       kMockAgentSet,
@@ -10486,7 +10486,7 @@ var require_mock_agent = __commonJS({
         if (opts && opts.agent && typeof opts.agent.dispatch !== "function") {
           throw new InvalidArgumentError("Argument opts.agent must implement Agent");
         }
-        const agent = opts && opts.agent ? opts.agent : new Agent(opts);
+        const agent = opts && opts.agent ? opts.agent : new Agent2(opts);
         this[kAgent] = agent;
         this[kClients] = agent[kClients];
         this[kOptions] = buildMockOptions(opts);
@@ -10591,7 +10591,7 @@ var require_proxy_agent = __commonJS({
     "use strict";
     var { kProxy, kClose, kDestroy, kInterceptors } = require_symbols();
     var { URL: URL3 } = require("url");
-    var Agent = require_agent();
+    var Agent2 = require_agent();
     var Pool = require_pool();
     var DispatcherBase = require_dispatcher_base();
     var { InvalidArgumentError, RequestAbortedError } = require_errors();
@@ -10624,7 +10624,7 @@ var require_proxy_agent = __commonJS({
       constructor(opts) {
         super(opts);
         this[kProxy] = buildProxyOptions(opts);
-        this[kAgent] = new Agent(opts);
+        this[kAgent] = new Agent2(opts);
         this[kInterceptors] = opts.interceptors && opts.interceptors.ProxyAgent && Array.isArray(opts.interceptors.ProxyAgent) ? opts.interceptors.ProxyAgent : [];
         if (typeof opts === "string") {
           opts = { uri: opts };
@@ -10651,7 +10651,7 @@ var require_proxy_agent = __commonJS({
         const connect = buildConnector({ ...opts.proxyTls });
         this[kConnectEndpoint] = buildConnector({ ...opts.requestTls });
         this[kClient] = clientFactory(resolvedUrl, { connect });
-        this[kAgent] = new Agent({
+        this[kAgent] = new Agent2({
           ...opts,
           connect: async (opts2, callback) => {
             let requestedHost = opts2.host;
@@ -10741,9 +10741,9 @@ var require_global2 = __commonJS({
     "use strict";
     var globalDispatcher = Symbol.for("undici.globalDispatcher.1");
     var { InvalidArgumentError } = require_errors();
-    var Agent = require_agent();
+    var Agent2 = require_agent();
     if (getGlobalDispatcher() === void 0) {
-      setGlobalDispatcher(new Agent());
+      setGlobalDispatcher(new Agent2());
     }
     function setGlobalDispatcher(agent) {
       if (!agent || typeof agent.dispatch !== "function") {
@@ -16389,7 +16389,7 @@ var require_undici = __commonJS({
     var errors = require_errors();
     var Pool = require_pool();
     var BalancedPool = require_balanced_pool();
-    var Agent = require_agent();
+    var Agent2 = require_agent();
     var util2 = require_util();
     var { InvalidArgumentError } = errors;
     var api = require_api();
@@ -16415,7 +16415,7 @@ var require_undici = __commonJS({
     module2.exports.Client = Client;
     module2.exports.Pool = Pool;
     module2.exports.BalancedPool = BalancedPool;
-    module2.exports.Agent = Agent;
+    module2.exports.Agent = Agent2;
     module2.exports.ProxyAgent = ProxyAgent;
     module2.exports.DecoratorHandler = DecoratorHandler;
     module2.exports.RedirectHandler = RedirectHandler;
@@ -16583,7 +16583,7 @@ var require_lib = __commonJS({
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.HttpClient = exports.isHttps = exports.HttpClientResponse = exports.HttpClientError = exports.getProxyUrl = exports.MediaTypes = exports.Headers = exports.HttpCodes = void 0;
     var http2 = __importStar(require("http"));
-    var https3 = __importStar(require("https"));
+    var https2 = __importStar(require("https"));
     var pm = __importStar(require_proxy());
     var tunnel = __importStar(require_tunnel2());
     var undici_1 = require_undici();
@@ -16974,7 +16974,7 @@ var require_lib = __commonJS({
         const info = {};
         info.parsedUrl = requestUrl;
         const usingSsl = info.parsedUrl.protocol === "https:";
-        info.httpModule = usingSsl ? https3 : http2;
+        info.httpModule = usingSsl ? https2 : http2;
         const defaultPort = usingSsl ? 443 : 80;
         info.options = {};
         info.options.host = info.parsedUrl.hostname;
@@ -17044,11 +17044,11 @@ var require_lib = __commonJS({
         }
         if (this._keepAlive && !agent) {
           const options = { keepAlive: this._keepAlive, maxSockets };
-          agent = usingSsl ? new https3.Agent(options) : new http2.Agent(options);
+          agent = usingSsl ? new https2.Agent(options) : new http2.Agent(options);
           this._agent = agent;
         }
         if (!agent) {
-          agent = usingSsl ? https3.globalAgent : http2.globalAgent;
+          agent = usingSsl ? https2.globalAgent : http2.globalAgent;
         }
         if (usingSsl && this._ignoreSslError) {
           agent.options = Object.assign(agent.options || {}, {
@@ -31047,7 +31047,7 @@ var require_form_data = __commonJS({
     var util2 = require("util");
     var path2 = require("path");
     var http2 = require("http");
-    var https3 = require("https");
+    var https2 = require("https");
     var parseUrl = require("url").parse;
     var fs2 = require("fs");
     var Stream = require("stream").Stream;
@@ -31315,7 +31315,7 @@ var require_form_data = __commonJS({
       }
       options.headers = this.getHeaders(params.headers);
       if (options.protocol == "https:") {
-        request = https3.request(options);
+        request = https2.request(options);
       } else {
         request = http2.request(options);
       }
@@ -32199,7 +32199,7 @@ var require_follow_redirects = __commonJS({
     var url2 = require("url");
     var URL3 = url2.URL;
     var http2 = require("http");
-    var https3 = require("https");
+    var https2 = require("https");
     var Writable = require("stream").Writable;
     var assert = require("assert");
     var debug = require_debug();
@@ -32646,8 +32646,434 @@ var require_follow_redirects = __commonJS({
     function isBuffer2(value) {
       return typeof value === "object" && "length" in value;
     }
-    module2.exports = wrap({ http: http2, https: https3 });
+    module2.exports = wrap({ http: http2, https: https2 });
     module2.exports.wrap = wrap;
+  }
+});
+
+// node_modules/humanize-ms/index.js
+var require_humanize_ms = __commonJS({
+  "node_modules/humanize-ms/index.js"(exports, module2) {
+    "use strict";
+    var util2 = require("util");
+    var ms = require_ms();
+    module2.exports = function(t) {
+      if (typeof t === "number")
+        return t;
+      var r = ms(t);
+      if (r === void 0) {
+        var err = new Error(util2.format("humanize-ms(%j) result undefined", t));
+        console.warn(err.stack);
+      }
+      return r;
+    };
+  }
+});
+
+// node_modules/agentkeepalive/lib/constants.js
+var require_constants5 = __commonJS({
+  "node_modules/agentkeepalive/lib/constants.js"(exports, module2) {
+    "use strict";
+    module2.exports = {
+      // agent
+      CURRENT_ID: Symbol("agentkeepalive#currentId"),
+      CREATE_ID: Symbol("agentkeepalive#createId"),
+      INIT_SOCKET: Symbol("agentkeepalive#initSocket"),
+      CREATE_HTTPS_CONNECTION: Symbol("agentkeepalive#createHttpsConnection"),
+      // socket
+      SOCKET_CREATED_TIME: Symbol("agentkeepalive#socketCreatedTime"),
+      SOCKET_NAME: Symbol("agentkeepalive#socketName"),
+      SOCKET_REQUEST_COUNT: Symbol("agentkeepalive#socketRequestCount"),
+      SOCKET_REQUEST_FINISHED_COUNT: Symbol("agentkeepalive#socketRequestFinishedCount")
+    };
+  }
+});
+
+// node_modules/agentkeepalive/lib/agent.js
+var require_agent2 = __commonJS({
+  "node_modules/agentkeepalive/lib/agent.js"(exports, module2) {
+    "use strict";
+    var OriginalAgent = require("http").Agent;
+    var ms = require_humanize_ms();
+    var debug = require("util").debuglog("agentkeepalive");
+    var {
+      INIT_SOCKET,
+      CURRENT_ID,
+      CREATE_ID,
+      SOCKET_CREATED_TIME,
+      SOCKET_NAME,
+      SOCKET_REQUEST_COUNT,
+      SOCKET_REQUEST_FINISHED_COUNT
+    } = require_constants5();
+    var defaultTimeoutListenerCount = 1;
+    var majorVersion = parseInt(process.version.split(".", 1)[0].substring(1));
+    if (majorVersion >= 11 && majorVersion <= 12) {
+      defaultTimeoutListenerCount = 2;
+    } else if (majorVersion >= 13) {
+      defaultTimeoutListenerCount = 3;
+    }
+    function deprecate(message) {
+      console.log("[agentkeepalive:deprecated] %s", message);
+    }
+    var Agent2 = class extends OriginalAgent {
+      constructor(options) {
+        options = options || {};
+        options.keepAlive = options.keepAlive !== false;
+        if (options.freeSocketTimeout === void 0) {
+          options.freeSocketTimeout = 4e3;
+        }
+        if (options.keepAliveTimeout) {
+          deprecate("options.keepAliveTimeout is deprecated, please use options.freeSocketTimeout instead");
+          options.freeSocketTimeout = options.keepAliveTimeout;
+          delete options.keepAliveTimeout;
+        }
+        if (options.freeSocketKeepAliveTimeout) {
+          deprecate("options.freeSocketKeepAliveTimeout is deprecated, please use options.freeSocketTimeout instead");
+          options.freeSocketTimeout = options.freeSocketKeepAliveTimeout;
+          delete options.freeSocketKeepAliveTimeout;
+        }
+        if (options.timeout === void 0) {
+          options.timeout = Math.max(options.freeSocketTimeout * 2, 8e3);
+        }
+        options.timeout = ms(options.timeout);
+        options.freeSocketTimeout = ms(options.freeSocketTimeout);
+        options.socketActiveTTL = options.socketActiveTTL ? ms(options.socketActiveTTL) : 0;
+        super(options);
+        this[CURRENT_ID] = 0;
+        this.createSocketCount = 0;
+        this.createSocketCountLastCheck = 0;
+        this.createSocketErrorCount = 0;
+        this.createSocketErrorCountLastCheck = 0;
+        this.closeSocketCount = 0;
+        this.closeSocketCountLastCheck = 0;
+        this.errorSocketCount = 0;
+        this.errorSocketCountLastCheck = 0;
+        this.requestCount = 0;
+        this.requestCountLastCheck = 0;
+        this.timeoutSocketCount = 0;
+        this.timeoutSocketCountLastCheck = 0;
+        this.on("free", (socket) => {
+          const timeout = this.calcSocketTimeout(socket);
+          if (timeout > 0 && socket.timeout !== timeout) {
+            socket.setTimeout(timeout);
+          }
+        });
+      }
+      get freeSocketKeepAliveTimeout() {
+        deprecate("agent.freeSocketKeepAliveTimeout is deprecated, please use agent.options.freeSocketTimeout instead");
+        return this.options.freeSocketTimeout;
+      }
+      get timeout() {
+        deprecate("agent.timeout is deprecated, please use agent.options.timeout instead");
+        return this.options.timeout;
+      }
+      get socketActiveTTL() {
+        deprecate("agent.socketActiveTTL is deprecated, please use agent.options.socketActiveTTL instead");
+        return this.options.socketActiveTTL;
+      }
+      calcSocketTimeout(socket) {
+        let freeSocketTimeout = this.options.freeSocketTimeout;
+        const socketActiveTTL = this.options.socketActiveTTL;
+        if (socketActiveTTL) {
+          const aliveTime = Date.now() - socket[SOCKET_CREATED_TIME];
+          const diff = socketActiveTTL - aliveTime;
+          if (diff <= 0) {
+            return diff;
+          }
+          if (freeSocketTimeout && diff < freeSocketTimeout) {
+            freeSocketTimeout = diff;
+          }
+        }
+        if (freeSocketTimeout) {
+          const customFreeSocketTimeout = socket.freeSocketTimeout || socket.freeSocketKeepAliveTimeout;
+          return customFreeSocketTimeout || freeSocketTimeout;
+        }
+      }
+      keepSocketAlive(socket) {
+        const result = super.keepSocketAlive(socket);
+        if (!result)
+          return result;
+        const customTimeout = this.calcSocketTimeout(socket);
+        if (typeof customTimeout === "undefined") {
+          return true;
+        }
+        if (customTimeout <= 0) {
+          debug(
+            "%s(requests: %s, finished: %s) free but need to destroy by TTL, request count %s, diff is %s",
+            socket[SOCKET_NAME],
+            socket[SOCKET_REQUEST_COUNT],
+            socket[SOCKET_REQUEST_FINISHED_COUNT],
+            customTimeout
+          );
+          return false;
+        }
+        if (socket.timeout !== customTimeout) {
+          socket.setTimeout(customTimeout);
+        }
+        return true;
+      }
+      // only call on addRequest
+      reuseSocket(...args) {
+        super.reuseSocket(...args);
+        const socket = args[0];
+        const req = args[1];
+        req.reusedSocket = true;
+        const agentTimeout = this.options.timeout;
+        if (getSocketTimeout(socket) !== agentTimeout) {
+          socket.setTimeout(agentTimeout);
+          debug("%s reset timeout to %sms", socket[SOCKET_NAME], agentTimeout);
+        }
+        socket[SOCKET_REQUEST_COUNT]++;
+        debug(
+          "%s(requests: %s, finished: %s) reuse on addRequest, timeout %sms",
+          socket[SOCKET_NAME],
+          socket[SOCKET_REQUEST_COUNT],
+          socket[SOCKET_REQUEST_FINISHED_COUNT],
+          getSocketTimeout(socket)
+        );
+      }
+      [CREATE_ID]() {
+        const id = this[CURRENT_ID]++;
+        if (this[CURRENT_ID] === Number.MAX_SAFE_INTEGER)
+          this[CURRENT_ID] = 0;
+        return id;
+      }
+      [INIT_SOCKET](socket, options) {
+        if (options.timeout) {
+          const timeout = getSocketTimeout(socket);
+          if (!timeout) {
+            socket.setTimeout(options.timeout);
+          }
+        }
+        if (this.options.keepAlive) {
+          socket.setNoDelay(true);
+        }
+        this.createSocketCount++;
+        if (this.options.socketActiveTTL) {
+          socket[SOCKET_CREATED_TIME] = Date.now();
+        }
+        socket[SOCKET_NAME] = `sock[${this[CREATE_ID]()}#${options._agentKey}]`.split("-----BEGIN", 1)[0];
+        socket[SOCKET_REQUEST_COUNT] = 1;
+        socket[SOCKET_REQUEST_FINISHED_COUNT] = 0;
+        installListeners(this, socket, options);
+      }
+      createConnection(options, oncreate) {
+        let called = false;
+        const onNewCreate = (err, socket) => {
+          if (called)
+            return;
+          called = true;
+          if (err) {
+            this.createSocketErrorCount++;
+            return oncreate(err);
+          }
+          this[INIT_SOCKET](socket, options);
+          oncreate(err, socket);
+        };
+        const newSocket = super.createConnection(options, onNewCreate);
+        if (newSocket)
+          onNewCreate(null, newSocket);
+        return newSocket;
+      }
+      get statusChanged() {
+        const changed = this.createSocketCount !== this.createSocketCountLastCheck || this.createSocketErrorCount !== this.createSocketErrorCountLastCheck || this.closeSocketCount !== this.closeSocketCountLastCheck || this.errorSocketCount !== this.errorSocketCountLastCheck || this.timeoutSocketCount !== this.timeoutSocketCountLastCheck || this.requestCount !== this.requestCountLastCheck;
+        if (changed) {
+          this.createSocketCountLastCheck = this.createSocketCount;
+          this.createSocketErrorCountLastCheck = this.createSocketErrorCount;
+          this.closeSocketCountLastCheck = this.closeSocketCount;
+          this.errorSocketCountLastCheck = this.errorSocketCount;
+          this.timeoutSocketCountLastCheck = this.timeoutSocketCount;
+          this.requestCountLastCheck = this.requestCount;
+        }
+        return changed;
+      }
+      getCurrentStatus() {
+        return {
+          createSocketCount: this.createSocketCount,
+          createSocketErrorCount: this.createSocketErrorCount,
+          closeSocketCount: this.closeSocketCount,
+          errorSocketCount: this.errorSocketCount,
+          timeoutSocketCount: this.timeoutSocketCount,
+          requestCount: this.requestCount,
+          freeSockets: inspect(this.freeSockets),
+          sockets: inspect(this.sockets),
+          requests: inspect(this.requests)
+        };
+      }
+    };
+    function getSocketTimeout(socket) {
+      return socket.timeout || socket._idleTimeout;
+    }
+    function installListeners(agent, socket, options) {
+      debug("%s create, timeout %sms", socket[SOCKET_NAME], getSocketTimeout(socket));
+      function onFree() {
+        if (!socket._httpMessage && socket[SOCKET_REQUEST_COUNT] === 1)
+          return;
+        socket[SOCKET_REQUEST_FINISHED_COUNT]++;
+        agent.requestCount++;
+        debug(
+          "%s(requests: %s, finished: %s) free",
+          socket[SOCKET_NAME],
+          socket[SOCKET_REQUEST_COUNT],
+          socket[SOCKET_REQUEST_FINISHED_COUNT]
+        );
+        const name = agent.getName(options);
+        if (socket.writable && agent.requests[name] && agent.requests[name].length) {
+          socket[SOCKET_REQUEST_COUNT]++;
+          debug(
+            "%s(requests: %s, finished: %s) will be reuse on agent free event",
+            socket[SOCKET_NAME],
+            socket[SOCKET_REQUEST_COUNT],
+            socket[SOCKET_REQUEST_FINISHED_COUNT]
+          );
+        }
+      }
+      socket.on("free", onFree);
+      function onClose(isError) {
+        debug(
+          "%s(requests: %s, finished: %s) close, isError: %s",
+          socket[SOCKET_NAME],
+          socket[SOCKET_REQUEST_COUNT],
+          socket[SOCKET_REQUEST_FINISHED_COUNT],
+          isError
+        );
+        agent.closeSocketCount++;
+      }
+      socket.on("close", onClose);
+      function onTimeout() {
+        const listenerCount = socket.listeners("timeout").length;
+        const timeout = getSocketTimeout(socket);
+        const req = socket._httpMessage;
+        const reqTimeoutListenerCount = req && req.listeners("timeout").length || 0;
+        debug(
+          "%s(requests: %s, finished: %s) timeout after %sms, listeners %s, defaultTimeoutListenerCount %s, hasHttpRequest %s, HttpRequest timeoutListenerCount %s",
+          socket[SOCKET_NAME],
+          socket[SOCKET_REQUEST_COUNT],
+          socket[SOCKET_REQUEST_FINISHED_COUNT],
+          timeout,
+          listenerCount,
+          defaultTimeoutListenerCount,
+          !!req,
+          reqTimeoutListenerCount
+        );
+        if (debug.enabled) {
+          debug("timeout listeners: %s", socket.listeners("timeout").map((f) => f.name).join(", "));
+        }
+        agent.timeoutSocketCount++;
+        const name = agent.getName(options);
+        if (agent.freeSockets[name] && agent.freeSockets[name].indexOf(socket) !== -1) {
+          socket.destroy();
+          agent.removeSocket(socket, options);
+          debug("%s is free, destroy quietly", socket[SOCKET_NAME]);
+        } else {
+          if (reqTimeoutListenerCount === 0) {
+            const error = new Error("Socket timeout");
+            error.code = "ERR_SOCKET_TIMEOUT";
+            error.timeout = timeout;
+            socket.destroy(error);
+            agent.removeSocket(socket, options);
+            debug("%s destroy with timeout error", socket[SOCKET_NAME]);
+          }
+        }
+      }
+      socket.on("timeout", onTimeout);
+      function onError(err) {
+        const listenerCount = socket.listeners("error").length;
+        debug(
+          "%s(requests: %s, finished: %s) error: %s, listenerCount: %s",
+          socket[SOCKET_NAME],
+          socket[SOCKET_REQUEST_COUNT],
+          socket[SOCKET_REQUEST_FINISHED_COUNT],
+          err,
+          listenerCount
+        );
+        agent.errorSocketCount++;
+        if (listenerCount === 1) {
+          debug("%s emit uncaught error event", socket[SOCKET_NAME]);
+          socket.removeListener("error", onError);
+          socket.emit("error", err);
+        }
+      }
+      socket.on("error", onError);
+      function onRemove() {
+        debug(
+          "%s(requests: %s, finished: %s) agentRemove",
+          socket[SOCKET_NAME],
+          socket[SOCKET_REQUEST_COUNT],
+          socket[SOCKET_REQUEST_FINISHED_COUNT]
+        );
+        socket.removeListener("close", onClose);
+        socket.removeListener("error", onError);
+        socket.removeListener("free", onFree);
+        socket.removeListener("timeout", onTimeout);
+        socket.removeListener("agentRemove", onRemove);
+      }
+      socket.on("agentRemove", onRemove);
+    }
+    module2.exports = Agent2;
+    function inspect(obj) {
+      const res = {};
+      for (const key in obj) {
+        res[key] = obj[key].length;
+      }
+      return res;
+    }
+  }
+});
+
+// node_modules/agentkeepalive/lib/https_agent.js
+var require_https_agent = __commonJS({
+  "node_modules/agentkeepalive/lib/https_agent.js"(exports, module2) {
+    "use strict";
+    var OriginalHttpsAgent = require("https").Agent;
+    var HttpAgent = require_agent2();
+    var {
+      INIT_SOCKET,
+      CREATE_HTTPS_CONNECTION
+    } = require_constants5();
+    var HttpsAgent = class extends HttpAgent {
+      constructor(options) {
+        super(options);
+        this.defaultPort = 443;
+        this.protocol = "https:";
+        this.maxCachedSessions = this.options.maxCachedSessions;
+        if (this.maxCachedSessions === void 0) {
+          this.maxCachedSessions = 100;
+        }
+        this._sessionCache = {
+          map: {},
+          list: []
+        };
+      }
+      createConnection(options, oncreate) {
+        const socket = this[CREATE_HTTPS_CONNECTION](options, oncreate);
+        this[INIT_SOCKET](socket, options);
+        return socket;
+      }
+    };
+    HttpsAgent.prototype[CREATE_HTTPS_CONNECTION] = OriginalHttpsAgent.prototype.createConnection;
+    [
+      "getName",
+      "_getSession",
+      "_cacheSession",
+      // https://github.com/nodejs/node/pull/4982
+      "_evictSession"
+    ].forEach(function(method) {
+      if (typeof OriginalHttpsAgent.prototype[method] === "function") {
+        HttpsAgent.prototype[method] = OriginalHttpsAgent.prototype[method];
+      }
+    });
+    module2.exports = HttpsAgent;
+  }
+});
+
+// node_modules/agentkeepalive/index.js
+var require_agentkeepalive = __commonJS({
+  "node_modules/agentkeepalive/index.js"(exports, module2) {
+    "use strict";
+    module2.exports = require_agent2();
+    module2.exports.HttpsAgent = require_https_agent();
+    module2.exports.constants = require_constants5();
   }
 });
 
@@ -38143,7 +38569,7 @@ var {
 } = axios_default;
 
 // src/lib/weblate/weblate.ts
-var import_https2 = __toESM(require("https"));
+var import_agentkeepalive = __toESM(require_agentkeepalive());
 
 // src/lib/weblate/normalizers.ts
 var import_kebabCase = __toESM(require_kebabCase());
@@ -38280,7 +38706,7 @@ var Weblate = class {
       headers: {
         Authorization: `Token ${token}`
       },
-      httpsAgent: new import_https2.default.Agent({ keepAlive: true }),
+      httpsAgent: new import_agentkeepalive.default(),
       timeout: 3 * 60 * 1e3,
       maxContentLength: 500 * 1e3 * 1e3
     });
@@ -39047,6 +39473,13 @@ mime-types/index.js:
    * mime-types
    * Copyright(c) 2014 Jonathan Ong
    * Copyright(c) 2015 Douglas Christopher Wilson
+   * MIT Licensed
+   *)
+
+humanize-ms/index.js:
+  (*!
+   * humanize-ms - index.js
+   * Copyright(c) 2014 dead_horse <dead_horse@qq.com>
    * MIT Licensed
    *)
 */

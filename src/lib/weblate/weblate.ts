@@ -1,5 +1,5 @@
 import axios, {isAxiosError} from 'axios';
-import https from 'https';
+import Agent from 'agentkeepalive';
 import type {AxiosInstance} from 'axios';
 import type {
     Category,
@@ -105,7 +105,7 @@ export class Weblate {
             headers: {
                 Authorization: `Token ${token}`,
             },
-            httpsAgent: new https.Agent({keepAlive: true}),
+            httpsAgent: new Agent(),
             timeout: 3 * 60 * 1000,
             maxContentLength: 500 * 1000 * 1000,
         });
