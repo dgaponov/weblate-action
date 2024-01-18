@@ -38225,9 +38225,7 @@ var getPullRequestMessage = ({
   return [
     title,
     pullRequestInfo,
-    "Translations update from [{{ site_title }}]({{ site_url }}) for [{{ project_name }}/{{ component_name }}]({{url}}).\n",
-    "Current translation status:\n",
-    "![Weblate translation status]({{widget_url}})\n"
+    "Translations update from [{{ site_title }}]({{ site_url }}) for [{{ project_name }}/{{ component_name }}]({{url}}).\n"
   ].join("\n");
 };
 var DEFAULT_COMPONENT_ADDONS = [
