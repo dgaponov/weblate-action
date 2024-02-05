@@ -38686,7 +38686,7 @@ var getComponentRepositoryErrors = async ({
       "2. Add Weblate as remote:",
       "```",
       `git remote add weblate ${mainComponent.git_export}`,
-      "git remote update weblate",
+      "git -c http.sslVerify=false remote update weblate",
       "```",
       "3. Merge Weblate changes:",
       "```",
