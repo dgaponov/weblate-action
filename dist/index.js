@@ -38461,25 +38461,38 @@ var Weblate = class {
     );
   }
   async getComponentsInCategory({ categoryId }) {
-    const components = [];
-    let page = 1;
-    while (page) {
-      const { next, results } = await this.client.get(
-        `/api/projects/${this.project}/components/`,
-        {
-          params: { page }
+    const maxTries = 5;
+    let tries = 0;
+    while (tries < maxTries) {
+      let page = 1;
+      const components = [];
+      try {
+        while (page) {
+          const { next, results } = await this.client.get(`/api/projects/${this.project}/components/`, {
+            params: { page }
+          });
+          components.push(
+            ...results.filter(
+              ({ category }) => category === categoryId
+            )
+          );
+          if (next) {
+            page = next;
+          } else {
+            break;
+          }
         }
-      );
-      components.push(
-        ...results.filter(({ category }) => category === categoryId)
-      );
-      if (next) {
-        page = next;
-      } else {
-        break;
+        return components;
+      } catch (error) {
+        tries++;
+        if (tries === maxTries) {
+          throw error;
+        } else {
+          sleep(2e3);
+        }
       }
     }
-    return components;
+    return [];
   }
   pullComponentRemoteChanges({
     name,
@@ -38658,10 +38671,13 @@ var getComponentRepositoryErrors = async ({
       "**i18n-check**",
       "<details>",
       "<summary>Errors occurred when merging changes from your branch with the Weblate branch.</summary>",
+      "",
       "```",
-      repositoryInfo.merge_failure,
+      repositoryInfo.merge_failure.replaceAll("```", ""),
       "```",
+      "",
       "</details>",
+      "",
       "**Resolve conflicts according to instructions**",
       "1. Switch to the current branch associated with this pull request.",
       "```",
