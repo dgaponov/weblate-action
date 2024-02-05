@@ -130,7 +130,7 @@ export const getComponentRepositoryErrors = async ({
             '<details>',
             '<summary>Errors occurred when merging changes from your branch with the Weblate branch.</summary>',
             '```',
-            repositoryInfo.merge_failure,
+            repositoryInfo.merge_failure.replaceAll('```', ''),
             '```',
             '</details>',
             '**Resolve conflicts according to instructions**',

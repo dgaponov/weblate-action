@@ -346,29 +346,46 @@ export class Weblate {
     }
 
     async getComponentsInCategory({categoryId}: {categoryId: string}) {
-        const components: Component[] = [];
-        let page = 1;
+        const maxTries = 5;
+        let tries = 0;
 
-        while (page) {
-            const {next, results} = await this.client.get<Paginated<Component>>(
-                `/api/projects/${this.project}/components/`,
-                {
-                    params: {page},
-                },
-            );
+        while (tries < maxTries) {
+            let page = 1;
+            const components: Component[] = [];
 
-            components.push(
-                ...results.filter(({category}) => category === categoryId),
-            );
+            try {
+                while (page) {
+                    const {next, results} = await this.client.get<
+                        Paginated<Component>
+                    >(`/api/projects/${this.project}/components/`, {
+                        params: {page},
+                    });
 
-            if (next) {
-                page = next;
-            } else {
-                break;
+                    components.push(
+                        ...results.filter(
+                            ({category}) => category === categoryId,
+                        ),
+                    );
+
+                    if (next) {
+                        page = next;
+                    } else {
+                        break;
+                    }
+                }
+
+                return components;
+            } catch (error) {
+                tries++;
+                if (tries === maxTries) {
+                    throw error;
+                } else {
+                    sleep(2000);
+                }
             }
         }
 
-        return components;
+        return [];
     }
 
     pullComponentRemoteChanges({
