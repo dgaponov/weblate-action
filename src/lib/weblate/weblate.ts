@@ -244,6 +244,7 @@ export class Weblate {
                 push_branch: repoForUpdates
                     ? branchForUpdates || branch
                     : undefined,
+                push_on_commit: false,
                 branch,
                 category: categoryId
                     ? `${this.serverUrl}/api/categories/${categoryId}/`

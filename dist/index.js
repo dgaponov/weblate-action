@@ -38386,6 +38386,7 @@ var Weblate = class {
         repo,
         push: repoForUpdates,
         push_branch: repoForUpdates ? branchForUpdates || branch : void 0,
+        push_on_commit: false,
         branch,
         category: categoryId ? `${this.serverUrl}/api/categories/${categoryId}/` : void 0,
         template: source,
