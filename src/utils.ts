@@ -12,6 +12,7 @@ export type ComponentInCode = {
 
 export const resolveComponents = async (
     keysetsPath: string,
+    mainLanguage: string,
 ): Promise<ComponentInCode[]> => {
     const dirents = await fs.readdir(path.resolve(process.cwd(), keysetsPath), {
         withFileTypes: true,
@@ -21,7 +22,7 @@ export const resolveComponents = async (
         .filter(dirent => dirent.isDirectory() && !dirent.name.startsWith('.'))
         .map(({name}) => ({
             name,
-            source: path.join(keysetsPath, name, 'en.json'),
+            source: path.join(keysetsPath, name, `${mainLanguage}.json`),
             fileMask: path.join(keysetsPath, name, '*.json'),
         }));
 };

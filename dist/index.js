@@ -35175,6 +35175,7 @@ function getConfiguration() {
     project: (0, import_core.getInput)("PROJECT"),
     branchName,
     fileFormat: (0, import_core.getInput)("FILE_FORMAT"),
+    mainLanguage: (0, import_core.getInput)("MAIN_LANGUAGE"),
     gitRepo,
     pullRequestNumber: import_github.context.payload.pull_request?.number,
     keysetsPath: (0, import_core.getInput)("KEYSETS_PATH"),
@@ -38203,13 +38204,13 @@ var slugify = (name) => (0, import_kebabCase.default)(name);
 var import_promises = __toESM(require("fs/promises"));
 var import_path = __toESM(require("path"));
 var sleep = (time) => new Promise((resolve) => setTimeout(resolve, time));
-var resolveComponents = async (keysetsPath) => {
+var resolveComponents = async (keysetsPath, mainLanguage) => {
   const dirents = await import_promises.default.readdir(import_path.default.resolve(process.cwd(), keysetsPath), {
     withFileTypes: true
   });
   return dirents.filter((dirent) => dirent.isDirectory() && !dirent.name.startsWith(".")).map(({ name }) => ({
     name,
-    source: import_path.default.join(keysetsPath, name, "en.json"),
+    source: import_path.default.join(keysetsPath, name, `${mainLanguage}.json`),
     fileMask: import_path.default.join(keysetsPath, name, "*.json")
   }));
 };
@@ -38263,16 +38264,19 @@ var Weblate = class {
   serverUrl;
   project;
   fileFormat;
+  mainLanguage;
   client;
   constructor({
     serverUrl,
     token,
     project,
-    fileFormat
+    fileFormat,
+    mainLanguage
   }) {
     this.serverUrl = serverUrl;
     this.project = project;
     this.fileFormat = fileFormat;
+    this.mainLanguage = mainLanguage;
     this.client = axios_default.create({
       baseURL: serverUrl,
       headers: {
@@ -38374,7 +38378,7 @@ var Weblate = class {
       {
         name,
         slug: slugify(name),
-        source_language: { code: "en", name: "English" },
+        source_language: this.mainLanguage,
         file_format: this.fileFormat,
         filemask: fileMask,
         language_regex: "^..$",
@@ -38799,7 +38803,10 @@ var syncMaster = async ({ config, weblate }) => {
       });
     }
   }
-  const componentsInCode = await resolveComponents(config.keysetsPath);
+  const componentsInCode = await resolveComponents(
+    config.keysetsPath,
+    config.mainLanguage
+  );
   const [firstComponent, ...otherComponents] = componentsInCode;
   const firstWeblateComponent = await weblate.createComponent({
     name: firstComponent.name,
@@ -38903,7 +38910,10 @@ var validatePullRequest = async ({ config, weblate }) => {
       return;
     }
   }
-  const componentsInCode = await resolveComponents(config.keysetsPath);
+  const componentsInCode = await resolveComponents(
+    config.keysetsPath,
+    config.mainLanguage
+  );
   const [firstComponent, ...otherComponents] = componentsInCode;
   const firstWeblateComponent = await weblate.createComponent({
     name: `${firstComponent.name}__${config.pullRequestNumber}`,

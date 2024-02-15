@@ -14,6 +14,7 @@ export type Configuration = {
     project: string;
     branchName: string;
     fileFormat: string;
+    mainLanguage: string;
     gitRepo: string;
     keysetsPath: string;
     masterBranch: string;
@@ -94,6 +95,7 @@ export function getConfiguration(): Configuration {
         project: getInput('PROJECT'),
         branchName,
         fileFormat: getInput('FILE_FORMAT'),
+        mainLanguage: getInput('MAIN_LANGUAGE'),
         gitRepo,
         pullRequestNumber: context.payload.pull_request?.number,
         keysetsPath: getInput('KEYSETS_PATH'),

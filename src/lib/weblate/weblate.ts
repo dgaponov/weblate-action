@@ -79,6 +79,7 @@ interface WeblateConstructorArg {
     serverUrl: string;
     token: string;
     project: string;
+    mainLanguage: string;
     fileFormat: string;
 }
 
@@ -86,6 +87,7 @@ export class Weblate {
     private serverUrl: string;
     private project: string;
     private fileFormat: string;
+    private mainLanguage: string;
     private client: AxiosInstance;
 
     constructor({
@@ -93,10 +95,12 @@ export class Weblate {
         token,
         project,
         fileFormat,
+        mainLanguage,
     }: WeblateConstructorArg) {
         this.serverUrl = serverUrl;
         this.project = project;
         this.fileFormat = fileFormat;
+        this.mainLanguage = mainLanguage;
 
         this.client = axios.create({
             baseURL: serverUrl,
@@ -230,7 +234,7 @@ export class Weblate {
             {
                 name,
                 slug: slugify(name),
-                source_language: {code: 'en', name: 'English'},
+                source_language: this.mainLanguage,
                 file_format: this.fileFormat,
                 filemask: fileMask,
                 language_regex: '^..$',

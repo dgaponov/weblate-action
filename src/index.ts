@@ -45,7 +45,10 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
     }
 
     // Resolve components from file structure in master branch
-    const componentsInCode = await resolveComponents(config.keysetsPath);
+    const componentsInCode = await resolveComponents(
+        config.keysetsPath,
+        config.mainLanguage,
+    );
     const [firstComponent, ...otherComponents] = componentsInCode;
 
     // Creating first component for master branch
@@ -174,7 +177,10 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
     }
 
     // Resolve components from file structure in feature branch
-    const componentsInCode = await resolveComponents(config.keysetsPath);
+    const componentsInCode = await resolveComponents(
+        config.keysetsPath,
+        config.mainLanguage,
+    );
     const [firstComponent, ...otherComponents] = componentsInCode;
 
     // Creating first component for feature branch
