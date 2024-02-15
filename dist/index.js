@@ -39040,7 +39040,8 @@ async function run() {
     token: config.token,
     serverUrl: config.serverUrl,
     project: config.project,
-    fileFormat: config.fileFormat
+    fileFormat: config.fileFormat,
+    mainLanguage: config.mainLanguage
   });
   await modeToHandler[config.mode]({
     config,

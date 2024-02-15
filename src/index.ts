@@ -335,6 +335,7 @@ async function run() {
         serverUrl: config.serverUrl,
         project: config.project,
         fileFormat: config.fileFormat,
+        mainLanguage: config.mainLanguage,
     });
 
     await modeToHandler[config.mode]({
