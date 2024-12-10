@@ -35145,28 +35145,28 @@ function getBranchName() {
 function getConfiguration() {
   const pullRequest = import_github.context.payload.pull_request ? import_github.context.payload.pull_request : void 0;
   let mode;
+  const useSshConnectionToRepo = Boolean(
+    (0, import_core.getInput)("USE_SSH_CONNECTION_TO_REPO")
+  );
   const masterBranch = (0, import_core.getInput)("MASTER_BRANCH");
   const branchName = getBranchName();
   let gitRepo;
   let pullRequestAuthor;
   if (pullRequest) {
-    if (!pullRequest?.head?.repo?.html_url) {
-      throw Error("Repository url for pull request not found");
-    }
-    gitRepo = pullRequest.head.repo.html_url;
+    gitRepo = useSshConnectionToRepo ? pullRequest?.head?.repo?.ssh_url : pullRequest?.head?.repo?.html_url;
     pullRequestAuthor = pullRequest.user?.login;
     mode = pullRequest.state === "closed" ? "REMOVE_BRANCH" /* REMOVE_BRANCH */ : "VALIDATE_PULL_REQUEST" /* VALIDATE_PULL_REQUEST */;
   } else {
-    if (!import_github.context.payload.repository?.html_url) {
-      throw Error("Repository url for master branch not found");
-    }
+    gitRepo = useSshConnectionToRepo ? import_github.context.payload.repository?.ssh_url : import_github.context.payload.repository?.html_url;
     if (branchName !== masterBranch) {
       throw Error(
         `The branch '${branchName}' doesn't match the master branch '${masterBranch}'`
       );
     }
-    gitRepo = import_github.context.payload.repository.html_url;
     mode = "SYNC_MASTER" /* SYNC_MASTER */;
+  }
+  if (!gitRepo) {
+    throw Error("Repository url for branch not found");
   }
   return {
     mode,

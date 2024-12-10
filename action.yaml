@@ -22,11 +22,15 @@ inputs:
     required: false
     default: 'main'
   MAIN_LANGUAGE:
-    required: failse
+    required: false
     default: 'en'
   GITHUB_TOKEN:
     description: 'Token for creating comments in pull request'
     required: true
+  USE_SSH_CONNECTION_TO_REPO:
+    required: false
+    default: ""
+    description: "Set to 'true' if need connect to github repo via ssh instead of https"
 
 runs:
   using: 'node20'

@@ -34,6 +34,7 @@ type PullRequest = {
     head?: {
         repo?: {
             html_url: string;
+            ssh_url: string;
         };
     };
     user?: {
@@ -56,27 +57,29 @@ export function getConfiguration(): Configuration {
 
     let mode: ActionMode;
 
+    const useSshConnectionToRepo = Boolean(
+        getInput('USE_SSH_CONNECTION_TO_REPO'),
+    );
     const masterBranch = getInput('MASTER_BRANCH');
     const branchName = getBranchName();
 
-    let gitRepo: string;
+    let gitRepo: string | undefined;
     let pullRequestAuthor: string | undefined;
 
     if (pullRequest) {
-        if (!pullRequest?.head?.repo?.html_url) {
-            throw Error('Repository url for pull request not found');
-        }
+        gitRepo = useSshConnectionToRepo
+            ? pullRequest?.head?.repo?.ssh_url
+            : pullRequest?.head?.repo?.html_url;
 
-        gitRepo = pullRequest.head.repo.html_url;
         pullRequestAuthor = pullRequest.user?.login;
         mode =
             pullRequest.state === 'closed'
                 ? ActionMode.REMOVE_BRANCH
                 : ActionMode.VALIDATE_PULL_REQUEST;
     } else {
-        if (!context.payload.repository?.html_url) {
-            throw Error('Repository url for master branch not found');
-        }
+        gitRepo = useSshConnectionToRepo
+            ? (context.payload.repository?.ssh_url as string | undefined)
+            : context.payload.repository?.html_url;
 
         if (branchName !== masterBranch) {
             throw Error(
@@ -84,8 +87,11 @@ export function getConfiguration(): Configuration {
             );
         }
 
-        gitRepo = context.payload.repository.html_url;
         mode = ActionMode.SYNC_MASTER;
+    }
+
+    if (!gitRepo) {
+        throw Error('Repository url for branch not found');
     }
 
     return {
