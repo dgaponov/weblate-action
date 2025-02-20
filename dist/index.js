@@ -38373,32 +38373,33 @@ var Weblate = class {
       }
       return component;
     }
+    const params = {
+      name,
+      slug: slugify(name),
+      source_language: this.mainLanguage,
+      file_format: this.fileFormat,
+      filemask: fileMask,
+      language_regex: "^..$",
+      vcs: "github",
+      repo,
+      push: repoForUpdates,
+      push_branch: repoForUpdates ? branchForUpdates || `${branch}__i18n` : void 0,
+      push_on_commit: false,
+      branch,
+      category: categoryId ? `${this.serverUrl}/api/categories/${categoryId}/` : void 0,
+      template: source,
+      new_base: source,
+      allow_translation_propagation: false,
+      manage_units: false,
+      merge_style: "rebase",
+      pull_message: getPullRequestMessage({
+        pullRequestAuthor,
+        pullRequestNumber
+      })
+    };
     const createdComponent = await this.client.post(
       `/api/projects/${this.project}/components/`,
-      {
-        name,
-        slug: slugify(name),
-        source_language: this.mainLanguage,
-        file_format: this.fileFormat,
-        filemask: fileMask,
-        language_regex: "^..$",
-        vcs: "github",
-        repo,
-        push: repoForUpdates,
-        push_branch: repoForUpdates ? branchForUpdates || branch : void 0,
-        push_on_commit: false,
-        branch,
-        category: categoryId ? `${this.serverUrl}/api/categories/${categoryId}/` : void 0,
-        template: source,
-        new_base: source,
-        allow_translation_propagation: false,
-        manage_units: false,
-        merge_style: "rebase",
-        pull_message: getPullRequestMessage({
-          pullRequestAuthor,
-          pullRequestNumber
-        })
-      }
+      params
     );
     if (applyDefaultAddons) {
       await this.applyDefaultAddonsToComponent({ name, categorySlug });
@@ -38499,6 +38500,12 @@ var Weblate = class {
     }
     return [];
   }
+  async getMainComponentInCategory({ categoryId }) {
+    const components = await this.getComponentsInCategory({
+      categoryId
+    });
+    return components.find(({ repo }) => !repo.startsWith("weblate://"));
+  }
   pullComponentRemoteChanges({
     name,
     categorySlug
@@ -38556,15 +38563,22 @@ var Weblate = class {
     if (!component?.task_url) {
       return true;
     }
-    return (await this.client.get(
-      `/api/tasks/${component.task_url}/`
-    )).completed;
+    try {
+      return (await this.client.get(
+        `/api/tasks/${component.task_url}/`
+      )).completed;
+    } catch (error) {
+      if (isAxiosError2(error) && error.response?.status === 404) {
+        return true;
+      }
+      throw error;
+    }
   }
   async waitComponentsTasks({
     componentNames,
     categorySlug
   }) {
-    const maxTries = 20;
+    const maxTries = 50;
     const sleepTime = 1e4;
     let tries = 0;
     while (tries < maxTries) {
@@ -38791,12 +38805,12 @@ var syncMaster = async ({ config, weblate }) => {
     const weblateComponents2 = await weblate.getComponentsInCategory({
       categoryId
     });
-    const mainComponent = weblateComponents2.find(
+    const mainComponent2 = weblateComponents2.find(
       ({ repo }) => !repo.startsWith("weblate://")
     );
-    if (mainComponent) {
+    if (mainComponent2) {
       await weblate.pullComponentRemoteChanges({
-        name: mainComponent.name,
+        name: mainComponent2.name,
         categorySlug
       });
       await weblate.waitComponentsTasks({
@@ -38821,13 +38835,16 @@ var syncMaster = async ({ config, weblate }) => {
     repoForUpdates: config.gitRepo,
     applyDefaultAddons: false
   });
+  const mainComponent = await weblate.getMainComponentInCategory({
+    categoryId
+  }) ?? firstWeblateComponent;
   const createComponentsPromises = otherComponents.map(
     (component) => weblate.createComponent({
       name: component.name,
       fileMask: component.fileMask,
       categoryId,
       categorySlug,
-      repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
+      repo: `weblate://${config.project}/${categorySlug}/${mainComponent.slug}`,
       source: component.source,
       applyDefaultAddons: false
     })

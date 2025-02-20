@@ -64,6 +64,11 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
         applyDefaultAddons: false,
     });
 
+    const mainComponent =
+        (await weblate.getMainComponentInCategory({
+            categoryId,
+        })) ?? firstWeblateComponent;
+
     // Creating other components with a link to the first component
     const createComponentsPromises = otherComponents.map(component =>
         weblate.createComponent({
@@ -71,7 +76,7 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
             fileMask: component.fileMask,
             categoryId,
             categorySlug,
-            repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
+            repo: `weblate://${config.project}/${categorySlug}/${mainComponent.slug}`,
             source: component.source,
             applyDefaultAddons: false,
         }),

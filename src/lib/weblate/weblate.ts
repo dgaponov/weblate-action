@@ -229,36 +229,38 @@ export class Weblate {
             return component;
         }
 
+        const params = {
+            name,
+            slug: slugify(name),
+            source_language: this.mainLanguage,
+            file_format: this.fileFormat,
+            filemask: fileMask,
+            language_regex: '^..$',
+            vcs: 'github',
+            repo,
+            push: repoForUpdates,
+            push_branch: repoForUpdates
+                ? branchForUpdates || `${branch}__i18n`
+                : undefined,
+            push_on_commit: false,
+            branch,
+            category: categoryId
+                ? `${this.serverUrl}/api/categories/${categoryId}/`
+                : undefined,
+            template: source,
+            new_base: source,
+            allow_translation_propagation: false,
+            manage_units: false,
+            merge_style: 'rebase',
+            pull_message: getPullRequestMessage({
+                pullRequestAuthor,
+                pullRequestNumber,
+            }),
+        };
+
         const createdComponent = await this.client.post<Component>(
             `/api/projects/${this.project}/components/`,
-            {
-                name,
-                slug: slugify(name),
-                source_language: this.mainLanguage,
-                file_format: this.fileFormat,
-                filemask: fileMask,
-                language_regex: '^..$',
-                vcs: 'github',
-                repo,
-                push: repoForUpdates,
-                push_branch: repoForUpdates
-                    ? branchForUpdates || branch
-                    : undefined,
-                push_on_commit: false,
-                branch,
-                category: categoryId
-                    ? `${this.serverUrl}/api/categories/${categoryId}/`
-                    : undefined,
-                template: source,
-                new_base: source,
-                allow_translation_propagation: false,
-                manage_units: false,
-                merge_style: 'rebase',
-                pull_message: getPullRequestMessage({
-                    pullRequestAuthor,
-                    pullRequestNumber,
-                }),
-            },
+            params,
         );
 
         if (applyDefaultAddons) {
@@ -393,6 +395,14 @@ export class Weblate {
         return [];
     }
 
+    async getMainComponentInCategory({categoryId}: {categoryId: string}) {
+        const components = await this.getComponentsInCategory({
+            categoryId,
+        });
+
+        return components.find(({repo}) => !repo.startsWith('weblate://'));
+    }
+
     pullComponentRemoteChanges({
         name,
         categorySlug,
@@ -486,11 +496,18 @@ export class Weblate {
             return true;
         }
 
-        return (
-            await this.client.get<{completed: boolean}>(
-                `/api/tasks/${component.task_url}/`,
-            )
-        ).completed;
+        try {
+            return (
+                await this.client.get<{completed: boolean}>(
+                    `/api/tasks/${component.task_url}/`,
+                )
+            ).completed;
+        } catch (error) {
+            if (isAxiosError(error) && error.response?.status === 404) {
+                return true;
+            }
+            throw error;
+        }
     }
 
     async waitComponentsTasks({
@@ -500,7 +517,7 @@ export class Weblate {
         componentNames: string[];
         categorySlug?: string;
     }) {
-        const maxTries = 20;
+        const maxTries = 50;
         const sleepTime = 10000;
         let tries = 0;
 
