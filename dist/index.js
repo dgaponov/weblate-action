@@ -38383,7 +38383,7 @@ var Weblate = class {
       vcs: "github",
       repo,
       push: repoForUpdates,
-      push_branch: repoForUpdates ? branchForUpdates || `${branch}__i18n` : void 0,
+      push_branch: repoForUpdates ? branchForUpdates || branch : void 0,
       push_on_commit: false,
       branch,
       category: categoryId ? `${this.serverUrl}/api/categories/${categoryId}/` : void 0,

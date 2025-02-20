@@ -240,7 +240,7 @@ export class Weblate {
             repo,
             push: repoForUpdates,
             push_branch: repoForUpdates
-                ? branchForUpdates || `${branch}__i18n`
+                ? branchForUpdates || branch
                 : undefined,
             push_on_commit: false,
             branch,
