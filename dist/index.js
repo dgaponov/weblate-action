@@ -38852,7 +38852,7 @@ var syncMaster = async ({ config, weblate }) => {
   const otherWeblateComponents = await Promise.all(createComponentsPromises);
   if (!categoryWasRecentlyCreated) {
     await weblate.pullComponentRemoteChanges({
-      name: firstWeblateComponent.name,
+      name: mainComponent.name,
       categorySlug
     });
   }
@@ -38947,13 +38947,16 @@ var validatePullRequest = async ({ config, weblate }) => {
     pullRequestNumber: config.pullRequestNumber,
     updateIfExist: categoryWasRecentlyCreated
   });
+  const mainComponent = await weblate.getMainComponentInCategory({
+    categoryId
+  }) ?? firstWeblateComponent;
   const createComponentsPromises = otherComponents.map(
     (component) => weblate.createComponent({
       name: `${component.name}__${config.pullRequestNumber}`,
       fileMask: component.fileMask,
       categoryId,
       categorySlug,
-      repo: `weblate://${config.project}/${categorySlug}/${firstWeblateComponent.slug}`,
+      repo: `weblate://${config.project}/${categorySlug}/${mainComponent.slug}`,
       source: component.source,
       pullRequestAuthor: config.pullRequestAuthor,
       pullRequestNumber: config.pullRequestNumber,
@@ -38967,7 +38970,7 @@ var validatePullRequest = async ({ config, weblate }) => {
   ];
   if (!categoryWasRecentlyCreated) {
     await weblate.pullComponentRemoteChanges({
-      name: firstWeblateComponent.name,
+      name: mainComponent.name,
       categorySlug
     });
   }
@@ -38983,7 +38986,7 @@ var validatePullRequest = async ({ config, weblate }) => {
     componentsInCode
   });
   const repositoryErrors = await getComponentRepositoryErrors({
-    name: firstWeblateComponent.name,
+    name: mainComponent.name,
     categorySlug,
     config,
     weblate
