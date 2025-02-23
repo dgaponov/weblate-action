@@ -116,7 +116,6 @@ export class Weblate {
             timeout: 2 * 60 * 1000,
             maxContentLength: 500 * 1000 * 1000,
         });
-
         this.client.interceptors.response.use(normalizeResponse);
     }
 
