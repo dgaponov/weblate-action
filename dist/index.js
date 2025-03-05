@@ -38229,6 +38229,16 @@ var getPullRequestMessage = ({
     "Translations update from [{{ site_title }}]({{ site_url }}) for [{{ project_name }}/{{ component_name }}]({{url}}).\n"
   ].join("\n");
 };
+var MAIN_BRANCH_COMPONENT_ADDONS = [
+  {
+    name: "weblate.json.customize",
+    configuration: {
+      sort_keys: 1,
+      style: "spaces",
+      indent: 2
+    }
+  }
+];
 var DEFAULT_COMPONENT_ADDONS = [
   {
     name: "weblate.git.squash",
@@ -38343,7 +38353,7 @@ var Weblate = class {
     categorySlug,
     repoForUpdates,
     branchForUpdates,
-    applyDefaultAddons = true,
+    applyAddons = "pull-request",
     updateIfExist,
     pullRequestAuthor,
     pullRequestNumber
@@ -38351,10 +38361,11 @@ var Weblate = class {
     const component = await this.findComponent({ name, categorySlug });
     if (component) {
       if (updateIfExist) {
-        if (applyDefaultAddons) {
+        if (applyAddons) {
           await this.applyDefaultAddonsToComponent({
             name,
-            categorySlug
+            categorySlug,
+            addonsType: applyAddons
           });
         }
         await this.updateComponent({
@@ -38401,8 +38412,12 @@ var Weblate = class {
       `/api/projects/${this.project}/components/`,
       params
     );
-    if (applyDefaultAddons) {
-      await this.applyDefaultAddonsToComponent({ name, categorySlug });
+    if (applyAddons) {
+      await this.applyDefaultAddonsToComponent({
+        name,
+        categorySlug,
+        addonsType: applyAddons
+      });
     }
     return {
       ...createdComponent,
@@ -38526,10 +38541,12 @@ var Weblate = class {
   }
   async applyDefaultAddonsToComponent({
     name,
-    categorySlug
+    categorySlug,
+    addonsType = "pull-request"
   }) {
     const componentSlug = getComponentSlug({ name, categorySlug });
-    const promises = DEFAULT_COMPONENT_ADDONS.map(
+    const addons = addonsType === "pull-request" ? DEFAULT_COMPONENT_ADDONS : MAIN_BRANCH_COMPONENT_ADDONS;
+    const promises = addons.map(
       (addon) => this.client.post(
         `/api/components/${this.project}/${componentSlug}/addons/`,
         { name: addon.name, configuration: addon.configuration }
@@ -38833,7 +38850,7 @@ var syncMaster = async ({ config, weblate }) => {
     branch: config.branchName,
     source: firstComponent.source,
     repoForUpdates: config.gitRepo,
-    applyDefaultAddons: false
+    applyAddons: "main-branch"
   });
   const mainComponent = await weblate.getMainComponentInCategory({
     categoryId
@@ -38846,7 +38863,7 @@ var syncMaster = async ({ config, weblate }) => {
       categorySlug,
       repo: `weblate://${config.project}/${categorySlug}/${mainComponent.slug}`,
       source: component.source,
-      applyDefaultAddons: false
+      applyAddons: "main-branch"
     })
   );
   const otherWeblateComponents = await Promise.all(createComponentsPromises);
@@ -38902,7 +38919,7 @@ var validatePullRequest = async ({ config, weblate }) => {
           categorySlug,
           repo: `weblate://${config.project}/${masterCategory.slug}/${mainMasterComponent.slug}`,
           source: component.template,
-          applyDefaultAddons: false,
+          applyAddons: false,
           pullRequestAuthor: config.pullRequestAuthor,
           pullRequestNumber: config.pullRequestNumber
         })

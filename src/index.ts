@@ -61,7 +61,7 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
         branch: config.branchName,
         source: firstComponent.source,
         repoForUpdates: config.gitRepo,
-        applyDefaultAddons: false,
+        applyAddons: 'main-branch',
     });
 
     const mainComponent =
@@ -78,7 +78,7 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
             categorySlug,
             repo: `weblate://${config.project}/${categorySlug}/${mainComponent.slug}`,
             source: component.source,
-            applyDefaultAddons: false,
+            applyAddons: 'main-branch',
         }),
     );
 
@@ -151,7 +151,7 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
                     categorySlug,
                     repo: `weblate://${config.project}/${masterCategory.slug}/${mainMasterComponent.slug}`,
                     source: component.template,
-                    applyDefaultAddons: false,
+                    applyAddons: false,
                     pullRequestAuthor: config.pullRequestAuthor,
                     pullRequestNumber: config.pullRequestNumber,
                 }),

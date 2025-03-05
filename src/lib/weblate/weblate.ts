@@ -38,6 +38,17 @@ const getPullRequestMessage = ({
     ].join('\n');
 };
 
+const MAIN_BRANCH_COMPONENT_ADDONS = [
+    {
+        name: 'weblate.json.customize',
+        configuration: {
+            sort_keys: 1,
+            style: 'spaces',
+            indent: 2,
+        },
+    },
+];
+
 const DEFAULT_COMPONENT_ADDONS = [
     {
         name: 'weblate.git.squash',
@@ -179,7 +190,7 @@ export class Weblate {
         categorySlug,
         repoForUpdates,
         branchForUpdates,
-        applyDefaultAddons = true,
+        applyAddons = 'pull-request',
         updateIfExist,
         pullRequestAuthor,
         pullRequestNumber,
@@ -193,7 +204,7 @@ export class Weblate {
         categorySlug?: string;
         repoForUpdates?: string;
         branchForUpdates?: string;
-        applyDefaultAddons?: boolean;
+        applyAddons?: 'main-branch' | 'pull-request' | false;
         updateIfExist?: boolean;
         pullRequestAuthor?: string;
         pullRequestNumber?: number;
@@ -202,10 +213,11 @@ export class Weblate {
 
         if (component) {
             if (updateIfExist) {
-                if (applyDefaultAddons) {
+                if (applyAddons) {
                     await this.applyDefaultAddonsToComponent({
                         name,
                         categorySlug,
+                        addonsType: applyAddons,
                     });
                 }
 
@@ -262,8 +274,12 @@ export class Weblate {
             params,
         );
 
-        if (applyDefaultAddons) {
-            await this.applyDefaultAddonsToComponent({name, categorySlug});
+        if (applyAddons) {
+            await this.applyDefaultAddonsToComponent({
+                name,
+                categorySlug,
+                addonsType: applyAddons,
+            });
         }
 
         return {
@@ -436,13 +452,20 @@ export class Weblate {
     async applyDefaultAddonsToComponent({
         name,
         categorySlug,
+        addonsType = 'pull-request',
     }: {
         name: string;
         categorySlug?: string;
+        addonsType?: 'main-branch' | 'pull-request';
     }) {
         const componentSlug = getComponentSlug({name, categorySlug});
 
-        const promises = DEFAULT_COMPONENT_ADDONS.map(addon =>
+        const addons =
+            addonsType === 'pull-request'
+                ? DEFAULT_COMPONENT_ADDONS
+                : MAIN_BRANCH_COMPONENT_ADDONS;
+
+        const promises = addons.map(addon =>
             this.client.post(
                 `/api/components/${this.project}/${componentSlug}/addons/`,
                 {name: addon.name, configuration: addon.configuration},
