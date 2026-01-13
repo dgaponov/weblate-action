@@ -19,6 +19,7 @@ module.exports = {
       "no-console": "off",
       "prettier/prettier": "error",
       "@typescript-eslint/no-explicit-any": "off",
-      "i18n-text/no-en": "off"
+      "i18n-text/no-en": "off",
+      "camelcase": "warn"
     }
 }

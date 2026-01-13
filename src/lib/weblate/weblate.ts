@@ -415,7 +415,7 @@ export class Weblate {
             categoryId,
         });
 
-        return components.find(({repo}) => !repo.startsWith('weblate://'));
+        return components.find(({linked_component}) => !linked_component);
     }
 
     pullComponentRemoteChanges({

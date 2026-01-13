@@ -30,7 +30,7 @@ const syncMaster = async ({config, weblate}: HandlerArgs) => {
             categoryId,
         });
         const mainComponent = weblateComponents.find(
-            ({repo}) => !repo.startsWith('weblate://'),
+            ({linked_component}) => !linked_component,
         );
         if (mainComponent) {
             await weblate.pullComponentRemoteChanges({
@@ -139,7 +139,7 @@ const validatePullRequest = async ({config, weblate}: HandlerArgs) => {
         });
 
         const mainMasterComponent =
-            masterComponents.find(({repo}) => !repo.startsWith('weblate://')) ||
+            masterComponents.find(({linked_component}) => !linked_component) ||
             masterComponents[0];
 
         const createdComponents = await Promise.all(
