@@ -34,7 +34,7 @@ export const removeMissingComponents = async ({
 
     if (componentsToRemove.length) {
         const componentsWithoutLinking = componentsToRemove.filter(
-            ({repo}) => !repo.startsWith('weblate://'),
+            ({linked_component}) => !linked_component,
         );
 
         // Set component as the main and linking with others
@@ -194,7 +194,7 @@ export const pullRemoteChanges = async ({
     }
 
     const mainComponent = weblateComponents.find(
-        ({repo}) => !repo.startsWith('weblate://'),
+        ({linked_component}) => !linked_component,
     );
 
     if (!mainComponent) {

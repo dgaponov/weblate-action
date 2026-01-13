@@ -26,6 +26,7 @@ export type Component = {
     task_url?: string;
     git_export?: string;
     wasRecentlyCreated?: boolean;
+    linked_component: string | null;
 };
 
 export type ComponentTranslationStats = {
