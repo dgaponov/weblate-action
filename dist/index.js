@@ -38519,7 +38519,7 @@ var Weblate = class {
     const components = await this.getComponentsInCategory({
       categoryId
     });
-    return components.find(({ repo }) => !repo.startsWith("weblate://"));
+    return components.find(({ linked_component }) => !linked_component);
   }
   pullComponentRemoteChanges({
     name,
@@ -38640,7 +38640,7 @@ var removeMissingComponents = async ({
   );
   if (componentsToRemove.length) {
     const componentsWithoutLinking = componentsToRemove.filter(
-      ({ repo }) => !repo.startsWith("weblate://")
+      ({ linked_component }) => !linked_component
     );
     if (componentsWithoutLinking.length && aliveComponents.length) {
       const [mainComponent, ...componentsToLinking] = aliveComponents;
@@ -38756,7 +38756,7 @@ var pullRemoteChanges = async ({
     return { mergeFailureMessage: void 0 };
   }
   const mainComponent = weblateComponents.find(
-    ({ repo }) => !repo.startsWith("weblate://")
+    ({ linked_component }) => !linked_component
   );
   if (!mainComponent) {
     return { mainComponent, mergeFailureMessage: void 0 };
@@ -38823,7 +38823,7 @@ var syncMaster = async ({ config, weblate }) => {
       categoryId
     });
     const mainComponent2 = weblateComponents2.find(
-      ({ repo }) => !repo.startsWith("weblate://")
+      ({ linked_component }) => !linked_component
     );
     if (mainComponent2) {
       await weblate.pullComponentRemoteChanges({
@@ -38909,7 +38909,7 @@ var validatePullRequest = async ({ config, weblate }) => {
     const masterComponents = await weblate.getComponentsInCategory({
       categoryId: masterCategory.id
     });
-    const mainMasterComponent = masterComponents.find(({ repo }) => !repo.startsWith("weblate://")) || masterComponents[0];
+    const mainMasterComponent = masterComponents.find(({ linked_component }) => !linked_component) || masterComponents[0];
     const createdComponents = await Promise.all(
       masterComponents.map(
         (component) => weblate.createComponent({
